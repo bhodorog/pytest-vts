@@ -66,7 +66,7 @@ def test_unrecorded_http_call(record_cassette):
     "illegal_url",
     "http://illegal.host.name/admin/",
 ])
-def test_vts_illegal_urls(vtsrec, url):
+def test_vts_illegal_urls(vts, url):
     with pytest.raises(requests.exceptions.RequestException):
         requests.get(url)
 
@@ -77,7 +77,7 @@ def test_cassette_is_always_file(record_cassette, poison_test_name):
     assert record_cassette._cass_dir() == cassette_dirname
 
 
-def test_gzipped_responses(vts_rec_on, httpserver):
+def test_recording_gzipped_responses_as_text(vts_rec_on, httpserver):
     data = "Hello!"
     # http://stackoverflow.com/a/22310760
     gzip_compressor = zlib.compressobj(9, zlib.DEFLATED, zlib.MAX_WBITS | 16)
@@ -96,8 +96,34 @@ def test_gzipped_responses(vts_rec_on, httpserver):
     assert track['response']['body'] == data
 
 
-def test_record_only_if_success(vts_rec_on):
-    # make sure we're recording - done
-    # dynamically run a failing pytest
-    # check that the cassette hasn't been saved
-    pass
+# enable pytester fixture which allows running pytests within tests
+pytest_plugins = "pytester"
+
+
+def test_not_saving_cassette_when_it_fails(testdir):
+    testdir.makepyfile("""
+        import requests
+
+        def test_always_failing(vts):
+            requests.get("https://api.github.com/search/repositories?q=user:bhodorog")
+            assert False
+    """)
+    testdir.plugins.append("pytest-vts")
+    testdir.runpytest()
+    cassettes_dir = testdir.tmpdir.join("cassettes")
+    assert not cassettes_dir.check()
+
+
+def test_saving_cassette_when_it_passes(testdir):
+    testdir.makepyfile("""
+        import requests
+
+        def test_always_passes(vts):
+            requests.get("https://api.github.com/search/repositories?q=user:bhodorog")
+            assert True
+    """)
+    testdir.plugins.append("pytest-vts")
+    testdir.runpytest()
+    cassettes_dir = testdir.tmpdir.join("cassettes")
+    assert cassettes_dir.check()
+    assert list(cassettes_dir.visit("*.cassette"))

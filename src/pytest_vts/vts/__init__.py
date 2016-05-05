@@ -11,7 +11,7 @@ _logger = logging.getLogger(__name__)
 
 
 class Recorder(object):
-    """Video Test System, inspired by VHS
+    """Video Test System, name inspired by VHS
 
     Able to record/playback cassettes. Each cassette is made of tracks (one
     HTTP request-response pair).
@@ -22,11 +22,7 @@ class Recorder(object):
     While .responses already keeps a collection of `.calls`, they're not
     directly json serializable therefore a json version of the `.cassette` is
     being constructed from `.calls`
-
-    TODO: when a new request not recorded for a test happens the behaviour
-    defined by the mocking library happens (e.g. `responses` will raise a
-    requests.exceptions.ConnectionError)
-    TODO: record the cassette only when the test has passed"""
+    """
     def __init__(self, pytest_req, basedir=None, cassette_name=None):
         self.cassette = []
         self.has_recorded = False
@@ -60,10 +56,15 @@ class Recorder(object):
     def teardown(self):
         self.responses.stop()
         self.responses.reset()
-        if self.has_recorded:
+        if self.has_recorded and self._test_has_passed:
             self._cass_file().write(
                 json.dumps(self.cassette, encoding="utf8"),
                 ensure=True)
+
+    @property
+    def _test_has_passed(self):
+        # set by the hookwrapper
+        return self._pytst_req.node.rep_call.passed
 
     def _cass_dir(self):
         return self.basedir.join("cassettes")
