@@ -12,10 +12,10 @@ def pytest_runtest_makereport(item, call):
 
 
 @pytest.fixture
-def vts(request):
+def vts(request, destination=None, name=None):
     """defines a VTS recorder fixture which automatically records/playback http
     stubbed requests during a unittest"""
-    rec = Recorder(request)
+    rec = Recorder(request, basedir=destination, cassette_name=name)
     rec.setup()
     request.addfinalizer(rec.teardown)
     return rec

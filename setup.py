@@ -5,7 +5,7 @@ setup(
     version="0.1.0",
     packages=find_packages("src"),
     package_dir={"": "src"},
-    install_requires=["pytest", "responses"],
+    install_requires=["pytest >=2.3", "responses"],
     entry_points={
         "pytest11": [
             "pytest_vts = pytest_vts"

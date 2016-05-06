@@ -3,14 +3,12 @@ import zlib
 import pytest
 import requests
 
-from pytest_vts import Recorder
+from pytest_vts import vts
 
 
 @pytest.fixture
 def vts_rec_on(request, tmpdir):
-    rec = Recorder(request, tmpdir)
-    rec.setup()
-    request.addfinalizer(rec.teardown)
+    rec = vts(request, tmpdir)
     rec.tmpdir = tmpdir
     return rec
 
