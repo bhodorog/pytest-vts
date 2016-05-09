@@ -1,6 +1,7 @@
 import pytest
 
 from .vts import Recorder
+from .version import __version__
 
 
 @pytest.hookimpl(tryfirst=True, hookwrapper=True)
@@ -12,10 +13,21 @@ def pytest_runtest_makereport(item, call):
 
 
 @pytest.fixture
-def vts(request, destination=None, name=None):
+def vts(request, basedir=None, cassette_name=None):
     """defines a VTS recorder fixture which automatically records/playback http
     stubbed requests during a unittest"""
-    rec = Recorder(request, basedir=destination, cassette_name=name)
+    args, kwargs = [], {}
+    param = getattr(request, "param", None)
+    if isinstance(param, dict):
+        kwargs = param
+    elif any((isinstance(param, col_klass)
+              for col_klass in [list, tuple])):
+        args = param
+    elif param:
+        args = [param]
+    else:
+        args = [basedir, cassette_name]
+    rec = Recorder(request, *args, **kwargs)
     rec.setup()
     request.addfinalizer(rec.teardown)
     return rec

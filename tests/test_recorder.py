@@ -1,3 +1,4 @@
+import tempfile
 import zlib
 
 import pytest
@@ -72,7 +73,7 @@ def test_vts_illegal_urls(vts, url):
 @pytest.mark.parametrize("poison_test_name", ["/some/path/like/name"])
 def test_cassette_is_always_file(record_cassette, poison_test_name):
     cassette_dirname = record_cassette._cass_file().dirname
-    assert record_cassette._cass_dir() == cassette_dirname
+    assert record_cassette._cass_dir == cassette_dirname
 
 
 def test_recording_gzipped_responses_as_text(vts_rec_on, httpserver):
@@ -125,3 +126,24 @@ def test_saving_cassette_when_it_passes(testdir):
     cassettes_dir = testdir.tmpdir.join("cassettes")
     assert cassettes_dir.check()
     assert list(cassettes_dir.visit("*.cassette"))
+
+
+@pytest.mark.parametrize(
+    "vts",
+    [{"basedir": tempfile.gettempdir(), "cassette_name": "expected_name"},
+     [tempfile.gettempdir(), "expected_name"], ],
+    indirect=["vts"],
+    ids=["kwargs", "args"])
+def test_vts_parametrize_kwargs(vts):
+    assert vts.cassette_name == "expected_name"
+    assert vts._cass_dir == tempfile.gettempdir()
+
+
+@pytest.mark.parametrize(
+    "vts",
+    [tempfile.gettempdir()],
+    indirect=["vts"],
+    ids=[""])
+def test_vts_parametrize_single_arg(vts):
+    assert vts.cassette_name == "test_vts_parametrize_single_arg[]"
+    assert vts._cass_dir == tempfile.gettempdir()

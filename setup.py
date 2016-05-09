@@ -1,8 +1,13 @@
 from setuptools import setup, find_packages
 
+execfile("./src/pytest_vts/version.py")
+
+with open("README.md") as fd:
+    long_description = fd.read()
+
 setup(
     name="pytest-vts",
-    version="0.1.0",
+    version=__version__,  # noqa
     packages=find_packages("src"),
     package_dir={"": "src"},
     install_requires=["pytest >=2.3", "responses"],
@@ -16,6 +21,7 @@ setup(
     author="Bogdan Hodorog",
     author_email="bogdan.hodorog@gmail.com",
     description="pytest plugin for automatic recording of http stubbed tests",
+    long_description=long_description,
     license="MIT",
     keywords="pytest plugin http stub mock record",
 )

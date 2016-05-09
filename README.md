@@ -15,9 +15,9 @@ library. VTS stands for Video Tests System and has been inspired from
   2. Once installed the package provides a [pytest fixture][] named `vts`which
   you can use for your tests.
 
-# Example
+## Simple example, showing available assertions
 
-## Source Code
+### Source Code
 
 ```python
 # content of github_client.py
@@ -42,7 +42,7 @@ def test_list_repositories(vts):
     assert vts.responses.calls[0].request.url
     assert vts.responses.calls[0].response
     assert vts.responses.calls[0].response.headers
-    # look at responses' documentation/code for available information
+    # look at responses' documentation/code for more available info to assert against
 
     # you can asserts vs vts' recorded cassete as well
     # since it's just json based duplicated information, using exposed
@@ -54,11 +54,13 @@ def test_list_repositories(vts):
 
 ```
 
-## Command line usage
+### Command line usage
 
 ```bash
 $ ls ./cassettes
 ls: ./cassettes: No such file or directory
+$ ls ./
+github_client.py test_github_client.py 
 # recording
 $ py.test test_github_client.py::test_func
 # vts will use requests library to forward the request to
@@ -70,6 +72,31 @@ test_list_repositories.json
 $ py.test test_github_client.py::test_func
 # all http requests are handled by responses based on the existing
 # cassette
+```
+
+## Customize vts fixture
+If the automatically determined location and the name for a cassette
+are not convenable you can customize these as well.
+
+  - using keyword arguments:
+```python
+@pytest.mark.parametrize("vts", [{"basedir": "", "cassette_name": ""}], indirect=["vts"])
+def test_list_repositories(vts):
+    github_client.list_repositories()
+```
+
+  - using arguments lists (parametrize a collection):
+```python
+@pytest.mark.parametrize("vts", [("/store/cassette/here", "cassette_name")], indirect=["vts"])
+def test_list_repositories(vts):
+    github_client.list_repositories()
+```
+
+  - customize just the basedir (just a value is automatically assigned to basedir):
+```python
+@pytest.mark.parametrize("vts", ["/store/cassette/here"], indirect=["vts"])
+def test_list_repositories(vts):
+    github_client.list_repositories()
 ```
 
 # How does it actually work?
@@ -121,20 +148,22 @@ features such as:
   - saving the cassette only if the test has passed
 
 # Why supporting [responses][] and not others?
-Because I think its API is familiar and proved itself as the most
+Because I think its API is familiar and proved itself as a very
 reliable option.
 
 # Future features?
   1. implement various strategies of handling new/missing requests from
   cassette-recorded. Currently when a new request not recorded for a
-  test happens the behaviour defined by the mocking library happens
+  test happens the behaviour defined by the mocking library happens.
   (e.g. [responses][] will raise a `requests.exceptions.ConnectionError`)
-  2. serialize requests' `response.history` to cassette json
+  2. serialize requests' `response.history` to cassette json.
   3. support other http-mocking libraries (probably those with
-     callbacks as mock responses? - most of them have that)
+     callbacks as mock responses? - most of them have that).
   4. add suppport for filtering sensitive information (e.g. passwords,
      auth headers) from cassettes in case they're publicly available
-     (e.g. vcs stored on a public vcs service)
+     (e.g. vcs stored on a public vcs service).
+  5. add an information text about test being recorded/playbacked in
+     the -vv output of pytest.
 
 
 [betamax]: https://betamax.readthedocs.org/

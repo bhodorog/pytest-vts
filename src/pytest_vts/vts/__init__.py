@@ -3,11 +3,16 @@ import re
 import logging
 import os.path
 
+import py.path
 import requests
 import responses
 
 
 _logger = logging.getLogger(__name__)
+
+
+class InvalidCassetteLocation(Exception):
+    pass
 
 
 class Recorder(object):
@@ -27,10 +32,15 @@ class Recorder(object):
         self.cassette = []
         self.has_recorded = False
         self._pytst_req = pytest_req
-        self.basedir = basedir or self._pytst_req.fspath.dirpath()
+        self._cass_dir = self._init_destination(basedir)
         self.cassette_name = cassette_name or self._pytst_req.node.name
         self.responses = responses.RequestsMock(
             assert_all_requests_are_fired=False)
+
+    def _init_destination(self, basedir):
+        if not basedir:
+            return self._pytst_req.fspath.dirpath().join("cassettes")
+        return py.path.local(basedir, expanduser=True)
 
     def setup(self):
         self.responses.start()
@@ -66,15 +76,12 @@ class Recorder(object):
         # set by the hookwrapper
         return self._pytst_req.node.rep_call.passed
 
-    def _cass_dir(self):
-        return self.basedir.join("cassettes")
-
     def _test_name(self):
         filename = self.cassette_name.replace(os.path.sep, "_")
         return ".".join((filename, "cassette"))
 
     def _cass_file(self):
-        return self._cass_dir().join(self._test_name())
+        return self._cass_dir.join(self._test_name())
 
     def has_cassette(self):
         return self._cass_file().exists()
