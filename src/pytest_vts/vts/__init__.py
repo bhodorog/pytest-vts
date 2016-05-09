@@ -1,3 +1,4 @@
+import copy
 import json
 import re
 import logging
@@ -68,7 +69,7 @@ class Recorder(object):
         self.responses.reset()
         if self.has_recorded and self._test_has_passed:
             self._cass_file().write(
-                json.dumps(self.cassette, encoding="utf8"),
+                json.dumps(self.cassette, encoding="utf8", indent=4),
                 ensure=True)
 
     @property
@@ -78,7 +79,7 @@ class Recorder(object):
 
     def _test_name(self):
         filename = self.cassette_name.replace(os.path.sep, "_")
-        return ".".join((filename, "cassette"))
+        return ".".join((filename, "json"))
 
     def _cass_file(self):
         return self._cass_dir.join(self._test_name())
@@ -88,18 +89,19 @@ class Recorder(object):
 
     def play(self, response):
         def _callback(http_req):
-            return (response['status_code'],
-                    response['headers'],
-                    json.dumps(response['body']))
+            return (response["status_code"],
+                    response["headers"],
+                    json.dumps(response["body"]))
         return _callback
 
     def rewind_cassette(self):
         for track in self.cassette:
-            req = track['request']
+            req = track["request"]
+            resp = _bypass_accept_encoding(track["response"])
             self.responses.add_callback(
-                req['method'], req['url'],
+                req["method"], req["url"],
                 match_querystring=True,
-                callback=self.play(track['response']))
+                callback=self.play(resp))
 
     def _insert_cassette(self):
         if not self.has_recorded:
@@ -123,19 +125,6 @@ class Recorder(object):
             except:
                 raise
             else:
-                content_encoding = resp.headers.get("Content-Encoding", "")
-                if "gzip" in content_encoding:
-                    # the body has already been decoded by the actual http
-                    # call (above requests.Sessions.send). Keeping the gzip
-                    # encoding in the response headers of will force the
-                    # calling functions (during recording or replaying)
-                    # (using requests) to try to decode it again.
-
-                    # when urllib3 sees a Content-Encoding header will try
-                    # to decode the response using the specified encoding,
-                    # thus we need to remove it since it's been already
-                    # decoded
-                    del resp.headers["Content-Encoding"]
                 try:
                     body = resp.json()
                     bodys = json.dumps(body)
@@ -149,9 +138,28 @@ class Recorder(object):
                 }
                 self.cassette.append(track)
                 self.has_recorded = True
-                return (resp.status_code,
-                        resp.headers,
+                return (track["response"]["status_code"],
+                        _bypass_accept_encoding(track["response"])["headers"],
                         bodys)
             finally:
                 self.responses.start()
         return _callback
+
+
+def _bypass_accept_encoding(track_response):
+    replica = copy.deepcopy(track_response)
+    content_encoding = replica["headers"].get("Content-Encoding", "")
+    if "gzip" in content_encoding:
+            # the body has already been decoded by the actual http call
+            # made during recording (using
+            # requests.Sessions.send). Keeping the gzip encoding in the
+            # response headers of will force the calling functions
+            # (during recording or replaying) (using requests) to try
+            # to decode it again.
+
+            # when urllib3 sees a Content-Encoding header will try
+            # to decode the response using the specified encoding,
+            # thus we need to remove it since it"s been already
+            # decoded
+        del replica["headers"]["Content-Encoding"]
+    return replica

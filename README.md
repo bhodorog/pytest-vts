@@ -74,30 +74,63 @@ $ py.test test_github_client.py::test_func
 # cassette
 ```
 
-## Customize vts fixture
-If the automatically determined location and the name for a cassette
-are not convenable you can customize these as well.
+## Customize vts fixture (injection mode)
+When using the *injection mode* of the vts fixture (declaring it as a
+test function argument), if the automatically determined location and
+the name for a cassette are not convenable you can customize these as
+well.
 
   - using keyword arguments:
 ```python
+import pytest
+
 @pytest.mark.parametrize("vts", [{"basedir": "", "cassette_name": ""}], indirect=["vts"])
 def test_list_repositories(vts):
     github_client.list_repositories()
+    assert vts.calls
 ```
 
   - using arguments lists (parametrize a collection):
 ```python
+import pytest
+
 @pytest.mark.parametrize("vts", [("/store/cassette/here", "cassette_name")], indirect=["vts"])
 def test_list_repositories(vts):
     github_client.list_repositories()
+    assert vts.calls
 ```
 
   - customize just the basedir (just a value is automatically assigned to basedir):
 ```python
+import pytest
+
 @pytest.mark.parametrize("vts", ["/store/cassette/here"], indirect=["vts"])
 def test_list_repositories(vts):
     github_client.list_repositories()
+    assert vts.calls
 ```
+
+## Customize vts fixture (non-injection mode)
+If vts fixture handle is not needed inside the test there is no need
+to declare it as an argument to a test function. Use
+`pytest.mark.usefixtures` instead. As a bonus, this allows to turn on
+the vts fixture once for a collection of test methods, grouped inside
+a class.
+
+```python
+import pytest
+
+@pytest.mark.usefixtures("vts")
+@pytest.mark.parametrize("vts", ["/store/cassette/here"], indirect=["vts"])
+class TestMoreTests(object):
+    def test_list_repositories_once(self):
+        github_client.list_repositories()
+
+    def test_list_repositories_twice(self):
+        github_client.list_repositories()
+```
+
+
 
 # How does it actually work?
 The vts fixture exposes an instance of a `vts.Recorder` class which
@@ -135,9 +168,10 @@ its own :) :
     some use cases
 
 # Why a pytest plugin and not standalone?
-Beacuse [pytest][] offers tests introspections out of the box
-complemented by an awesome development support (to name just a few:
-pytester builtin fixture, pytest-localserver).
+Because, among a lot of features, [pytest][] offers fixtures and tests
+introspections out of the box, complemented by an awesome development
+support (to name just a few: pytester builtin fixture,
+pytest-localserver).
 
 Test introspections have been very useful implementing convenience
 features such as:
@@ -146,6 +180,9 @@ features such as:
   - automatic deciding the location of the cassettes based on the
     tests modules
   - saving the cassette only if the test has passed
+
+The above examples of how to customize the vts fixture are in fact
+pytest's fixtures features.
 
 # Why supporting [responses][] and not others?
 Because I think its API is familiar and proved itself as a very

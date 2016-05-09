@@ -91,7 +91,7 @@ def test_recording_gzipped_responses_as_text(vts_rec_on, httpserver):
     assert len(vts_rec_on.cassette) == 1
     track = vts_rec_on.cassette[0]
     assert track['request']['url'] == url
-    assert "Content-Encoding" not in track['response']['headers']
+    assert "Content-Encoding" in track['response']['headers']
     assert track['response']['body'] == data
 
 
@@ -125,7 +125,7 @@ def test_saving_cassette_when_it_passes(testdir):
     testdir.runpytest()
     cassettes_dir = testdir.tmpdir.join("cassettes")
     assert cassettes_dir.check()
-    assert list(cassettes_dir.visit("*.cassette"))
+    assert list(cassettes_dir.visit("*.json"))
 
 
 @pytest.mark.parametrize(
