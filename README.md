@@ -114,7 +114,7 @@ def test_list_repositories(vts):
 If vts fixture handle is not needed inside the test there is no need
 to declare it as an argument to a test function. Use
 `pytest.mark.usefixtures` instead. As a bonus, this allows to turn on
-the vts fixture once for a collection of test methods, grouped inside
+the vts fixture only once for a collection of test methods, grouped inside
 a class.
 
 ```python
@@ -201,6 +201,11 @@ reliable option.
      (e.g. vcs stored on a public vcs service).
   5. add an information text about test being recorded/playbacked in
      the -vv output of pytest.
+  6. consider having tracks saved in their own files to avoid having
+     cassettes to big
+  7. consider not saving duplicated tracks
+  8. handle `tracks` with duplicated `['request']` but different
+     `['response']`. Keep the first one? The last one? Raise?
 
 
 [betamax]: https://betamax.readthedocs.org/
