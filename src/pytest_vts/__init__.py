@@ -1,7 +1,9 @@
 import pytest
 
 from .vts import Recorder
-from .version import __version__
+from .version import __version__  # noqa
+
+recorder = None
 
 
 @pytest.hookimpl(tryfirst=True, hookwrapper=True)
@@ -30,4 +32,6 @@ def vts(request, basedir=None, cassette_name=None):
     rec = Recorder(request, *args, **kwargs)
     rec.setup()
     request.addfinalizer(rec.teardown)
+    global recorder
+    recorder = rec
     return rec

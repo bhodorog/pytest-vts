@@ -205,7 +205,11 @@ reliable option.
      cassettes to big
   7. consider not saving duplicated tracks
   8. handle `tracks` with duplicated `['request']` but different
-     `['response']`. Keep the first one? The last one? Raise?
+     `['response']`. Keep the first one? The last one? Raise? Keep?
+    - make use of [responses][]' `assert_all_requests_are_fired`? Keep
+      all duplicates and support responses' functionality.
+  9. have separate objects (sides?) for tracks recorded during tests
+     vs recorded during fixture setup/teardown?
 
 
 [betamax]: https://betamax.readthedocs.org/

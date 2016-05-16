@@ -15,6 +15,9 @@ _logger = logging.getLogger(__name__)
 class InvalidCassetteLocation(Exception):
     pass
 
+class RequestBodyDoesntMatchTrack(Exception):
+    pass
+
 
 class Recorder(object):
     """Video Test System, name inspired by VHS
@@ -53,10 +56,15 @@ class Recorder(object):
     def setup_recording(self):
         _logger.info("recording ...")
         self.responses.reset()
-        all_re = re.compile("http.*")
-        self.responses.add_callback(
-            responses.GET, all_re,
-            self.record())
+        all_requests_re = re.compile("http.*")
+        methods = (responses.GET, responses.POST, responses.PUT,
+                   responses.PATCH, responses.DELETE, responses.HEAD,
+                   responses.OPTIONS)
+        for http_method in methods:
+            self.responses.add_callback(
+                http_method, all_requests_re,
+                match_querystring=False,
+                callback=self.record())
 
     def setup_playback(self):
         _logger.info("playing back ...")
@@ -87,21 +95,26 @@ class Recorder(object):
     def has_cassette(self):
         return self._cass_file().exists()
 
-    def play(self, response):
+    def play(self, track):
+        req = track["request"]
+        resp = _bypass_accept_encoding(track["response"])
+
+
         def _callback(http_req):
-            return (response["status_code"],
-                    response["headers"],
-                    json.dumps(response["body"]))
+            if http_req.body != req.get("body"):
+                raise RequestBodyDoesntMatchTrack("Requests body doesn't match recorded track's body!!")
+            return (resp["status_code"],
+                    resp["headers"],
+                    json.dumps(resp["body"]))
         return _callback
 
     def rewind_cassette(self):
         for track in self.cassette:
             req = track["request"]
-            resp = _bypass_accept_encoding(track["response"])
             self.responses.add_callback(
                 req["method"], req["url"],
                 match_querystring=True,
-                callback=self.play(resp))
+                callback=self.play(track))
 
     def _insert_cassette(self):
         if not self.has_recorded:
