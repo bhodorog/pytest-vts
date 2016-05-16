@@ -1,5 +1,6 @@
 pytest-vts
-===
+==========
+
 Automatic recorder for http stubbed
 `pytest(s) <http://pytest.org/latest/>`_ using
 `responses <https://github.com/getsentry/responses>`_ library. VTS

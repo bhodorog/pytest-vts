@@ -2,8 +2,11 @@ from setuptools import setup, find_packages
 
 execfile("./src/pytest_vts/version.py")
 
-with open("README.md") as fd:
+with open("PyPI_LONGDESC.rst") as fd:
     long_description = fd.read()
+
+keywords = ("pytest plugin http stub mock record responses recorder "
+            "vcr betamax automatic")
 
 setup(
     name="pytest-vts",
@@ -23,5 +26,5 @@ setup(
     description="pytest plugin for automatic recording of http stubbed tests",
     long_description=long_description,
     license="MIT",
-    keywords="pytest plugin http stub mock record",
+    keywords=keywords,
 )

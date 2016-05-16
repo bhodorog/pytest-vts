@@ -1,1 +1,3 @@
 include README.md
+include CHANGELOG
+include PyPI_LONGDESC.rst
