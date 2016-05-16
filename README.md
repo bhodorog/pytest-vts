@@ -210,6 +210,8 @@ reliable option.
       all duplicates and support responses' functionality.
   9. have separate objects (sides?) for tracks recorded during tests
      vs recorded during fixture setup/teardown?
+  10. have playback callbacks raising when the body of the request
+      doesn't match the body of the recorded request
 
 
 [betamax]: https://betamax.readthedocs.org/

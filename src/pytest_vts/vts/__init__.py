@@ -99,10 +99,12 @@ class Recorder(object):
         req = track["request"]
         resp = _bypass_accept_encoding(track["response"])
 
-
         def _callback(http_req):
-            if http_req.body != req.get("body"):
-                raise RequestBodyDoesntMatchTrack("Requests body doesn't match recorded track's body!!")
+            # if http_req.body != req.get("body"):
+            #     err_msg = ("Requests body doesn't match recorded track's "
+            #                "body!!:\n{}\n!=\n{}").format(
+            #                    http_req.body, req.get("body"))
+            #     raise RequestBodyDoesntMatchTrack(err_msg)
             return (resp["status_code"],
                     resp["headers"],
                     json.dumps(resp["body"]))
