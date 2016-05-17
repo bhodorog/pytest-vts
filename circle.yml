@@ -14,9 +14,3 @@ dependencies:
 test:
   override:
     - tox -- ./tests
-
-deployment:
-  release:
-    branch: master
-    commands:
-      - make pypi-upload

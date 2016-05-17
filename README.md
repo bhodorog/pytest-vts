@@ -1,4 +1,4 @@
-# pytest-vts
+# pytest-vts [![Circle CI](https://circleci.com/gh/bhodorog/pytest-vts.svg?style=shield&circle-token=226b36230a81dfb066afcd2ef84701e43c2391ca)](https://circleci.com/gh/bhodorog/pytest-vts)
 Automatic recorder for http stubbed [pytest][](s) using [responses][]
 library. VTS stands for Video Tests System and has been inspired from
 [VHS][Videotape format war wiki].
