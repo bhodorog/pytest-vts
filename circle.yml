@@ -1,0 +1,22 @@
+machine:
+  timezone:   Australia/Sydney
+  python:
+    version:  2.7.10
+
+dependencies:
+  override:
+    - pip install --upgrade pip==8.1.0
+    - pip install tox
+    - tox --notest
+  cache_directories:
+    - ".tox"
+
+test:
+  override:
+    - tox -- ./tests
+
+deployment:
+  release:
+    branch: master
+    commands:
+      - make pypi-upload
