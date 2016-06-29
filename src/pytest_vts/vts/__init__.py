@@ -35,25 +35,40 @@ class Recorder(object):
     def __init__(self, pytest_req, basedir=None, cassette_name=None):
         self.cassette = []
         self.has_recorded = False
+        self.is_recording = self.is_playing = False
         self._pytst_req = pytest_req
+        self._basedir = basedir
         self._cass_dir = self._init_destination(basedir)
         self.cassette_name = cassette_name or self._pytst_req.node.name
+        self.strict_body = False
         self.responses = responses.RequestsMock(
             assert_all_requests_are_fired=False)
+
+    @classmethod
+    def clone(cls, other):
+        cloned = cls(other._pytst_req, other._basedir, other.cassette_name)
+        cloned._cass_dir = other._cass_dir
+        return cloned
 
     def _init_destination(self, basedir):
         if not basedir:
             return self._pytst_req.fspath.dirpath().join("cassettes")
         return py.path.local(basedir, expanduser=True)
 
-    def setup(self):
+    def setup(self, basedir=None, cassette_name=None, **kwargs):
+        if basedir:
+            self._cass_dir = self._init_destination(basedir)
+        self.cassette_name = cassette_name or self._pytst_req.node.name
         self.responses.start()
-        if not self.has_cassette():
-            self.setup_recording()
+        force_recording = os.environ.get("PYTEST_VTS_FORCE_RECORDING", False)
+        if not self.has_cassette() or force_recording:
+            self.is_recording = True
+            self.setup_recording(**kwargs.get("rec_kwargs", {}))
         else:
-            self.setup_playback()
+            self.is_playing = True
+            self.setup_playback(**kwargs.get("play_kwargs", {}))
 
-    def setup_recording(self):
+    def setup_recording(self, **kwargs):
         _logger.info("recording ...")
         self.responses.reset()
         all_requests_re = re.compile("http.*")
@@ -66,23 +81,33 @@ class Recorder(object):
                 match_querystring=False,
                 callback=self.record())
 
-    def setup_playback(self):
+    def setup_playback(self, **kwargs):
         _logger.info("playing back ...")
         self._insert_cassette()
         self.responses.reset()  # reset recording matchers
-        self.rewind_cassette()
+        self.rewind_cassette(**kwargs)
 
     def teardown(self):
         self.responses.stop()
         self.responses.reset()
         if self.has_recorded and self._test_has_passed:
-            self._cass_file().write(
-                json.dumps(self.cassette, encoding="utf8", indent=4),
-                ensure=True)
+            self._save_cassette()
+
+    def _save_cassette(self):
+        self._cass_file().write(
+            json.dumps(self.cassette, encoding="utf8", indent=4),
+            ensure=True)
+
+    def _flip_mode(self):
+        self.is_playing = not self.is_playing
+        self.is_recording = not self.is_recording
+        self.has_recorded = not self.has_recorded
 
     @property
     def _test_has_passed(self):
         # set by the hookwrapper
+        if not hasattr(self._pytst_req.node, "rep_call"):
+            return False
         return self._pytst_req.node.rep_call.passed
 
     def _test_name(self):
@@ -95,28 +120,30 @@ class Recorder(object):
     def has_cassette(self):
         return self._cass_file().exists()
 
-    def play(self, track):
-        req = track["request"]
+    def play(self, track, **kwargs):
+        recorded_req = track["request"]
         resp = _bypass_accept_encoding(track["response"])
 
-        def _callback(http_req):
-            # if http_req.body != req.get("body"):
-            #     err_msg = ("Requests body doesn't match recorded track's "
-            #                "body!!:\n{}\n!=\n{}").format(
-            #                    http_req.body, req.get("body"))
-            #     raise RequestBodyDoesntMatchTrack(err_msg)
+        def _callback(crt_http_req):
+            if kwargs.get("strict_body") or self.strict_body:
+                assert crt_http_req.body == recorded_req.get("body"), RequestBodyDoesntMatchTrack()
+            elif crt_http_req.body != recorded_req.get("body"):
+                err_msg = ("Requests body doesn't match recorded track's "
+                           "body!!:\n{}\n!=\n{}").format(
+                               crt_http_req.body, recorded_req.get("body"))
+                _logger.warn(err_msg)
             return (resp["status_code"],
                     resp["headers"],
                     json.dumps(resp["body"]))
         return _callback
 
-    def rewind_cassette(self):
+    def rewind_cassette(self, **kwargs):
         for track in self.cassette:
             req = track["request"]
             self.responses.add_callback(
                 req["method"], req["url"],
                 match_querystring=True,
-                callback=self.play(track))
+                callback=self.play(track, **kwargs))
 
     def _insert_cassette(self):
         if not self.has_recorded:

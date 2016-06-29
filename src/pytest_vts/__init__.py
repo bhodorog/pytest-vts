@@ -15,23 +15,27 @@ def pytest_runtest_makereport(item, call):
 
 
 @pytest.fixture
-def vts(request, basedir=None, cassette_name=None):
-    """defines a VTS recorder fixture which automatically records/playback http
-    stubbed requests during a unittest"""
-    args, kwargs = [], {}
-    param = getattr(request, "param", None)
-    if isinstance(param, dict):
-        kwargs = param
-    elif any((isinstance(param, col_klass)
-              for col_klass in [list, tuple])):
-        args = param
-    elif param:
-        args = [param]
-    else:
-        args = [basedir, cassette_name]
-    rec = Recorder(request, *args, **kwargs)
-    rec.setup()
-    request.addfinalizer(rec.teardown)
-    global recorder
-    recorder = rec
+def vts_recorder(request):
+    """create a VTS recorder in an undefined state"""
+    param = getattr(request, "param", {})
+    if param and not isinstance(param, dict):
+        raise Exception("pytest-vts configuration error! Currently you can"
+                        " configure pytest-vts's fixtures with dicts objects")
+    rec = Recorder(request, param.get("basedir"), param.get("cassette_name"))
     return rec
+
+
+@pytest.fixture
+def vts(request, vts_recorder):
+    """transform a recorder into a fixture by applying setup/teardown
+    phases. Invokation of setup() flips the fixture in one of the available
+    statest: recording or playing"""
+    param = getattr(request, "param", {})
+    if param and not isinstance(param, dict):
+        raise Exception("pytest-vts configuration error! Currently you can"
+                        " configure pytest-vts's fixtures with dicts objects")
+    vts_recorder.setup(**param)
+    request.addfinalizer(vts_recorder.teardown)
+    global recorder
+    recorder = vts_recorder
+    return vts_recorder

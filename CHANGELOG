@@ -1,3 +1,16 @@
+# v0.2.0
+
+  - *playback* mode: improved comparison of HTTP requests agains the
+    recorded ones. By default a warning is being [logged][logging] or
+    if "strict_body" is enabled the body is being
+    [asserted][pytest assert]
+
+  - *recording* mode: beside switching to this mode when a cassette
+    file is missing, now it's possile to force this mode by using
+    `PYTEST_VTS_FORCE_RECORDING` environment variable
+
+  - remove almost all usages of external sites for tests
+
 # v0.1.5
 
   - disable the matching of requests' bodies to the recorded requests
@@ -22,3 +35,5 @@
 
 [requests]: http://docs.python-requests.org/en/lastest/
 [responses]: https://github.com/getsentry/responses
+[logging]: https://docs.python.org/3/library/logging.html?highlight=logging#module-logging
+[pytest assert]: http://pytest.org/latest/assert.html#assert-with-the-assert-statement

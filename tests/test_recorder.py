@@ -1,58 +1,81 @@
+import json
 import tempfile
 import zlib
 
+import mock
 import pytest
 import requests
 
-from pytest_vts import vts
+import pytest_vts
 
 
-@pytest.fixture
-def vts_rec_on(request, tmpdir):
-    rec = vts(request, tmpdir)
-    rec.tmpdir = tmpdir
-    return rec
+@pytest.yield_fixture
+def vts_rec_on(vts_recorder, tmpdir):
+    vts_recorder.setup(basedir=tmpdir)
+    yield vts_recorder
+    vts_recorder.teardown()
 
 
-@pytest.fixture
-def github_url():
-    return "https://api.github.com/search/repositories?q=user:bhodorog"
-
-
-@pytest.fixture
-def github_search(github_url):
+def http_get(url):
     resp = requests.get(
-        github_url, headers={"Accept": "application/vnd.github.v3+json"})
+        url, headers={"Accept": "application/json"})
     return resp
 
 
 @pytest.fixture
-def record_cassette(vts_rec_on, github_url):
-    github_search(github_url)
+def sample_output():
+    return {
+        "title": "A history of tape recorders",
+    }
+
+
+@pytest.yield_fixture
+def movie_server(httpserver, sample_output):
+    """Based on pytest_localserver.httpserver fixture.
+
+    Server port needs to remain the same, so that responses will match the
+    requests during tests against pre-recorded cassettes. Port has been choosen
+    from IANA non-asigned ones:
+    http://www.iana.org/assignments/service-names-port-numbers/service-names-port-numbers.xhtml?search=56478"""
+
+    from pytest_localserver import http
+    server = http.ContentServer()  # port=56478)
+    server.start()
+    httpserver.serve_content(
+        json.dumps(sample_output), 200,
+        headers={"Content-Type": "application/json",
+                 "X-VTS-Testing": "Reporting"})
+    yield httpserver
+    server.stop()
+
+
+@pytest.fixture
+def record_cassette(vts_rec_on, movie_server):
+    http_get(movie_server.url)
     return vts_rec_on
 
 
-def test_vts_recording(vts_rec_on, github_url):
-    resp = github_search(github_url)
+def test_vts_recording(vts_rec_on, movie_server, sample_output):
+    resp = http_get(movie_server.url)
     assert resp.status_code == 200
     assert vts_rec_on.responses
     assert vts_rec_on.responses.calls
     assert vts_rec_on.responses.calls[0]
-    assert vts_rec_on.responses.calls[0].request.url == github_url
+    assert vts_rec_on.responses.calls[0].request.url == movie_server.url + "/"
     assert vts_rec_on.responses.calls[0].response
     assert vts_rec_on.cassette
     assert len(vts_rec_on.cassette) == 1
     track = vts_rec_on.cassette[0]
     assert track["request"]
     assert track["request"]["method"] == "GET"
-    assert track["request"]["url"] == github_url
+    assert track["request"]["url"] == movie_server.url + "/"
     assert "Accept" in track["request"]["headers"]
     assert track["request"]["body"] is None
     assert track["response"]
     assert track["response"]["status_code"] == 200
     assert track["response"]["headers"]
-    assert track["response"]["headers"]["Server"] == "GitHub.com"
-    assert track["response"]["body"]
+    assert track["response"]["headers"]["X-VTS-Testing"] == "Reporting"
+    assert track["response"]["body"] == sample_output
 
 
 def test_unrecorded_http_call(record_cassette):
@@ -130,20 +153,34 @@ def test_saving_cassette_when_it_passes(testdir):
 
 @pytest.mark.parametrize(
     "vts",
-    [{"basedir": tempfile.gettempdir(), "cassette_name": "expected_name"},
-     [tempfile.gettempdir(), "expected_name"], ],
+    [{"basedir": tempfile.gettempdir(), "cassette_name": "expected_name"}, ],
     indirect=["vts"],
-    ids=["kwargs", "args"])
-def test_vts_parametrize_kwargs(vts):
+    ids=["kwargs"])
+def test_vts_parametrize(vts):
     assert vts.cassette_name == "expected_name"
     assert vts._cass_dir == tempfile.gettempdir()
 
 
-@pytest.mark.parametrize(
-    "vts",
-    [tempfile.gettempdir()],
-    indirect=["vts"],
-    ids=[""])
-def test_vts_parametrize_single_arg(vts):
-    assert vts.cassette_name == "test_vts_parametrize_single_arg[]"
-    assert vts._cass_dir == tempfile.gettempdir()
+def test_match_strict_body_against_recorded_requests(vts_recorder,
+                                                     movie_server,
+                                                     monkeypatch,
+                                                     tmpdir):
+    vts_recorder.setup(basedir=tmpdir)
+    assert vts_recorder.cassette == []
+    resp = requests.post(movie_server.url,
+                         headers={"Accept": "application/json"},
+                         json={"msg": "Hello"})
+    assert vts_recorder.cassette
+    # hack to coerce the fixture to properly teardown
+    vts_recorder._pytst_req.node.rep_call = mock.Mock(passed=True)
+    vts_recorder.teardown()
+    vts_play_on = pytest_vts.Recorder.clone(vts_recorder)
+    vts_play_on.setup()
+    recorded_body = vts_play_on.cassette[0]["request"]["body"]
+    assert recorded_body
+    vts_play_on.strict_body = True
+    with pytest.raises(AssertionError):
+        requests.post(movie_server.url,
+                      headers={"Accept": "application/json"},
+                      json={"msg": "not the recorded body"})
+
