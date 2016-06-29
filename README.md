@@ -172,7 +172,12 @@ to allow `vts` to manage its own `responses.start|stop|reset()` cycles
 without interfering with the default `responses.RequestsMock` object
 exposed by default by [responses][] through `response.*`
 interface. This way you can continue using `import response;
-response.start|add|add_callback|reset|stop` in parallel with `vts`.
+response.start|add|add_callback|reset|stop` in parallel with
+`vts`. However if you plan to do so remember there will be 2 instances
+trying to `mock.patch()` [requests][] so be careful and `.stop()` one
+before `start()` the other.  Obviously the last `.start`-ed one will
+be active. For more details on this issue read [response][]'s source
+and [unittest.mock][] docs.
 
 Beside its own copy of `response.RequestsMock` vts is responsible of:
 
@@ -271,3 +276,4 @@ reliable option.
 [1]: http://pytest.org/latest/fixture.html#override-a-fixture-with-direct-test-parametrization
 [pytest-vts]: https://pypi.python.org/pypi/pytest-vts/
 [cassette]: #user-content-cassette
+[unittest.mock]: https://docs.python.org/dev/library/unittest.mock.html#start-and-stop
