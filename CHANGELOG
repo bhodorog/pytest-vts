@@ -11,7 +11,7 @@
     file is missing, now it's possile to force this mode by using
     `PYTEST_VTS_FORCE_RECORDING` environment variable
 
-  - remove almost all usages of external sites for tests
+  - remove almost all usages of external sites for unittests
 
 # v0.1.5
 
