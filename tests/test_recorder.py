@@ -103,7 +103,7 @@ def test_recording_gzipped_responses_as_text(vts_rec_on, httpserver):
     data = "Hello!"
     # http://stackoverflow.com/a/22310760
     gzip_compressor = zlib.compressobj(9, zlib.DEFLATED, zlib.MAX_WBITS | 16)
-    gzipped = gzip_compressor.compress(data) + gzip_compressor.flush()
+    gzipped = gzip_compressor.compress(data.encode()) + gzip_compressor.flush()
     httpserver.serve_content(
         gzipped, 200,
         headers={"Content-Encoding": "gzip"})
@@ -165,6 +165,7 @@ def test_match_strict_body_against_recorded_requests(vts_recorder,
                                                      movie_server,
                                                      monkeypatch,
                                                      tmpdir):
+    # use vts_recorder to manually control .teardown()
     vts_recorder.setup(basedir=tmpdir)
     assert vts_recorder.cassette == []
     resp = requests.post(movie_server.url,

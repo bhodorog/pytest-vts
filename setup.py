@@ -1,6 +1,6 @@
 from setuptools import setup, find_packages
 
-execfile("./src/pytest_vts/version.py")
+exec(open("./src/pytest_vts/version.py").read())
 
 with open("PyPI_LONGDESC.rst") as fd:
     long_description = fd.read()

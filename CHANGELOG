@@ -1,5 +1,7 @@
 # v0.2.0
 
+  - add support for python3
+
   - *playback* mode: improved comparison of HTTP requests agains the
     recorded ones. By default a warning is being [logged][logging] or
     if "strict_body" is enabled the body is being

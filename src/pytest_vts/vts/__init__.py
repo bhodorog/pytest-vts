@@ -95,7 +95,7 @@ class Recorder(object):
 
     def _save_cassette(self):
         self._cass_file().write(
-            json.dumps(self.cassette, encoding="utf8", indent=4),
+            json.dumps(self.cassette, indent=4),
             ensure=True)
 
     def _flip_mode(self):
@@ -126,7 +126,7 @@ class Recorder(object):
 
         def _callback(crt_http_req):
             if kwargs.get("strict_body") or self.strict_body:
-                assert crt_http_req.body == recorded_req.get("body"), RequestBodyDoesntMatchTrack()
+                assert crt_http_req.body == recorded_req.get("body"), "Recorded body doesn't match the current request's body."
             elif crt_http_req.body != recorded_req.get("body"):
                 err_msg = ("Requests body doesn't match recorded track's "
                            "body!!:\n{}\n!=\n{}").format(
