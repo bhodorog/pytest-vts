@@ -8,6 +8,6 @@ stands for Video Tests System and has been inspired from
 `VHS <https://en.wikipedia.org/wiki/Videotape_format_war>`_.
 
 * `Documentation <https://github.com/bhodorog/pytest-vts/blob/master/README.md>`_
-* `Changelog <https://github.com/bhodorog/pytest-vts/blob/master/CHANGELOG>`_
+* `Changelog <https://github.com/bhodorog/pytest-vts/blob/master/CHANGELOG.md>`_
 * `Github Page <https://github.com/bhodorog/pytest-vts>`_
 * `Issue Tracking <https://github.com/bhodorog/pytest-vts/issues>`_
