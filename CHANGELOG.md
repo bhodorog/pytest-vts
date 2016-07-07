@@ -1,3 +1,7 @@
+# v0.2.1
+
+  - no change, expect pypi's fixed description for CHANGELOG link
+
 # v0.2.0
 
   - add support for python3
