@@ -1,8 +1,12 @@
-# v0.2.1
+# Unreleased
+
+  - to be filled in
+
+# v0.2.1 - 2016-07-07 #
 
   - no change, expect pypi's fixed description for CHANGELOG link
 
-# v0.2.0
+# v0.2.0 - 2016-06-30 #
 
   - add support for python3
 
@@ -17,16 +21,16 @@
 
   - remove almost all usages of external sites for unittests
 
-# v0.1.5
+# v0.1.4 - v0.1.5 - 2016-05-16 #
 
   - disable the matching of requests' bodies to the recorded requests
     bodies.
 
-# v0.1.1 - v.0.1.3 #
+# v0.1.1 - v.0.1.3 - 2016-05-16 #
 
   - minor changes to description page on PyPI
 
-# v0.1.0 #
+# v0.1.0 - 2016-05-16 #
 
   - *recording* mode: when a cassette file is missing all http calls are
     requested using [requests][] library and the HTTP request-response
