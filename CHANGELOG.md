@@ -1,12 +1,26 @@
+This project uses [Semantic Versioning][] and follows [these][keepachangelog] changelog guidelines.
+
 # Unreleased
 
+#### Added:
+
+#### Changed:
+
+#### Removed:
+
+#### Fixed:
   - to be filled in
 
-# v0.2.1 - 2016-07-07 #
+
+# v0.2.1 - 2016-07-07
+#### Fixed:
 
   - no change, expect pypi's fixed description for CHANGELOG link
 
-# v0.2.0 - 2016-06-30 #
+
+# v0.2.0 - 2016-06-30
+
+#### Added:
 
   - add support for python3
 
@@ -19,18 +33,29 @@
     file is missing, now it's possile to force this mode by using
     `PYTEST_VTS_FORCE_RECORDING` environment variable
 
+#### Removed:
+
   - remove almost all usages of external sites for unittests
 
-# v0.1.4 - v0.1.5 - 2016-05-16 #
+
+# v0.1.4 - v0.1.5 - 2016-05-16
+
+#### Removed:
 
   - disable the matching of requests' bodies to the recorded requests
     bodies.
 
-# v0.1.1 - v.0.1.3 - 2016-05-16 #
+
+# v0.1.1 - v.0.1.3 - 2016-05-16
+
+#### Changed:
 
   - minor changes to description page on PyPI
 
-# v0.1.0 - 2016-05-16 #
+
+# v0.1.0 - 2016-05-16
+
+#### Added:
 
   - *recording* mode: when a cassette file is missing all http calls are
     requested using [requests][] library and the HTTP request-response
@@ -47,3 +72,5 @@
 [responses]: https://github.com/getsentry/responses
 [logging]: https://docs.python.org/3/library/logging.html?highlight=logging#module-logging
 [pytest assert]: http://pytest.org/latest/assert.html#assert-with-the-assert-statement
+[keepachangelog]: http://keepachangelog.com/
+[Semantic Versioning]: http://semver.org/
