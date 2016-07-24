@@ -117,6 +117,7 @@ class Recorder(object):
     def _cass_file(self):
         return self._cass_dir.join(self._test_name())
 
+    @property
     def has_cassette(self):
         return self._cass_file().exists()
 

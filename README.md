@@ -254,18 +254,21 @@ reliable option.
      the -vv output of pytest.
   6. consider having tracks saved in their own files to avoid having
      cassettes to big
-  7. consider not saving duplicated tracks
-  8. handle `tracks` with duplicated `['request']` but different
+  7. resolve potential conflicts in automatic naming of cassette (same
+     test method in 2 different module in the same pacakge) files,
+     maybe by using their module name as prefix?
+  8. consider not saving duplicated tracks
+  9. handle `tracks` with duplicated `['request']` but different
      `['response']`. Keep the first one? The last one? Raise? Keep?
      make use of [responses][]' `assert_all_requests_are_fired`? Keep
      all duplicates and support responses' functionality.
-  9. have separate objects (sides?) for tracks recorded during tests
+  10. have separate objects (sides?) for tracks recorded during tests
      vs recorded during fixture setup/teardown?
-  10. [DONE] have playback callbacks raising when the body of the
+  11. [DONE] have playback callbacks raising when the body of the
       request doesn't match the body of the recorded request
-  11. extend the above behaviour for headers/query_strings/selective
+  12. extend the above behaviour for headers/query_strings/selective
       headers?
-  12. the body of the requests is string. Would be more practical to
+  13. the body of the requests is string. Would be more practical to
       have if as dict.
 
 
@@ -282,3 +285,4 @@ reliable option.
 [pytest-vts]: https://pypi.python.org/pypi/pytest-vts/
 [cassette]: #user-content-cassette
 [unittest.mock]: https://docs.python.org/dev/library/unittest.mock.html#start-and-stop
+[mock][]: https://pypi.python.org/pypi/mock/
