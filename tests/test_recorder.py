@@ -89,7 +89,7 @@ def test_unrecorded_http_call(record_cassette):
     "http://illegal.host.name/admin/",
 ])
 def test_vts_illegal_urls(vts, url):
-    with pytest.raises(requests.exceptions.RequestException):
+    with pytest.raises(Exception):
         requests.get(url)
 
 
@@ -185,3 +185,17 @@ def test_match_strict_body_against_recorded_requests(vts_recorder,
                       headers={"Accept": "application/json"},
                       json={"msg": "not the recorded body"})
 
+
+def test_catch_all_gevented_requests(vts_rec_on, movie_server):
+    def _job():
+        return http_get(movie_server.url)
+
+    from gevent.pool import Pool
+    import gevent.monkey
+    gevent.monkey.patch_socket(dns=True)
+
+    pool = Pool()
+    for x in range(10):
+        pool.spawn(_job)
+    pool.join()
+    assert len(vts_rec_on.cassette) == 10
