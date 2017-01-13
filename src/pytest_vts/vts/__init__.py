@@ -153,6 +153,13 @@ class Recorder(object):
 
     def record(self):
         def _callback(http_prep_req):
+            """Uses urllib3 to fetch the urls which needs to be
+            recorded. Having the request already prepacked for requests would
+            make it easier to use requests, it means we need to temporarily
+            stop responses until we fetch the response. This introduces
+            isolation problems since HTTP requests made by other execution
+            units (green thread, os threads) while responses is stopped won't
+            be intercepted and persisted in the cassette."""
             track = {}
             track["request"] = {
                 "method": http_prep_req.method,
@@ -161,31 +168,39 @@ class Recorder(object):
                 "headers": dict(http_prep_req.headers.items()),
                 "body": http_prep_req.body,
             }
-            sess = requests.Session()
-            self.responses.stop()
             try:
-                resp = sess.send(http_prep_req, timeout=2)
+                # carefull with this since it's silencing any Insecure SSL warnings
+                requests.packages.urllib3.disable_warnings()
+                pm = requests.packages.urllib3.PoolManager()
+                resp = pm.urlopen(
+                    method=http_prep_req.method,
+                    url=http_prep_req.url,
+                    body=http_prep_req.body,
+                    headers=http_prep_req.headers,
+                    redirect=False,
+                    assert_same_host=False,
+                    preload_content=False,
+                    decode_content=True,
+                    retries=3,
+                )
             except:
                 raise
             else:
                 try:
-                    body = resp.json()
+                    body = json.loads(resp.data.decode("utf-8"))
                     bodys = json.dumps(body)
                 except ValueError:
-                    body = bodys = resp.text
+                    body = bodys = resp.data.decode("utf-8")
                 track["response"] = {
-                    "status_code": resp.status_code,
+                    "status_code": resp.status,
                     "headers": dict(resp.headers.items()),
                     "body": body,
-                    # "history": resp.history,  # TODO: serialize request.Response objects into json
                 }
                 self.cassette.append(track)
                 self.has_recorded = True
                 return (track["response"]["status_code"],
                         _bypass_accept_encoding(track["response"])["headers"],
                         bodys)
-            finally:
-                self.responses.start()
         return _callback
 
 
