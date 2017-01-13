@@ -61,7 +61,7 @@ class Recorder(object):
         self.cassette_name = cassette_name or self._pytst_req.node.name
         self.responses.start()
         force_recording = os.environ.get("PYTEST_VTS_FORCE_RECORDING", False)
-        if not self.has_cassette() or force_recording:
+        if not self.has_cassette or force_recording:
             self.is_recording = True
             self.setup_recording(**kwargs.get("rec_kwargs", {}))
         else:

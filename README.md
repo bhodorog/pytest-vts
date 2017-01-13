@@ -270,6 +270,12 @@ reliable option.
       headers?
   13. the body of the requests is string. Would be more practical to
       have if as dict.
+  14. Improve the api interface to configure the vts fixture for a
+      test (e.g. set always recording/playing, don't save cassette,
+      etc)
+  15. Currently having 2 tests with the same name in different classes
+      will reuse the same cassette(use the full identifier for a
+      test?)
 
 
 [betamax]: https://betamax.readthedocs.org/
