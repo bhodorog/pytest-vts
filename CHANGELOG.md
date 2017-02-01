@@ -12,6 +12,10 @@ This project uses [Semantic Versioning][] and follows [these][keepachangelog] ch
   - to be filled in
 
 
+# v0.3.0 - 2017-02-01
+  - allow requests to be recorded in multi-(g)threaded environments.
+
+
 # v0.2.1 - 2016-07-07
 #### Fixed:
 
