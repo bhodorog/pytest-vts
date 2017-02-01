@@ -169,8 +169,8 @@ def test_match_strict_body_against_recorded_requests(vts_recorder,
     vts_recorder.setup(basedir=tmpdir)
     assert vts_recorder.cassette == []
     resp = requests.post(movie_server.url,
-                         headers={"Accept": "application/json"},
-                         json={"msg": "Hello"})
+                         headers={"Accept": "application/json", "Content-Type": "application/json"},
+                         data=json.dumps({"msg": "Hello"}))
     assert vts_recorder.cassette
     # hack to coerce the fixture to properly teardown
     vts_recorder._pytst_req.node.rep_call = mock.Mock(passed=True)
