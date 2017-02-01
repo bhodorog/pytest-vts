@@ -203,6 +203,10 @@ class Recorder(object):
                         bodys)
         return _callback
 
+    @property
+    def requested_urls(self):
+        return [track['request']['url'] for track in self.cassette]
+
 
 def _bypass_accept_encoding(track_response):
     replica = copy.deepcopy(track_response)

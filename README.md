@@ -276,6 +276,7 @@ reliable option.
   15. Currently having 2 tests with the same name in different classes
       will reuse the same cassette(use the full identifier for a
       test?)
+  16. Command line to reply a cassette using curl/requests?
 
 
 [betamax]: https://betamax.readthedocs.org/
