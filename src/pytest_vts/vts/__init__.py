@@ -7,6 +7,7 @@ import os.path
 import py.path
 import requests
 import responses
+import six
 
 
 _logger = logging.getLogger(__name__)
@@ -123,7 +124,7 @@ class Recorder(object):
 
     def play(self, track, **kwargs):
         recorded_req = track["request"]
-        resp = _bypass_accept_encoding(track["response"])
+        resp = _adjust_headers_for_responses(track["response"])
 
         def _callback(crt_http_req):
             if kwargs.get("strict_body") or self.strict_body:
@@ -199,7 +200,7 @@ class Recorder(object):
                 self.cassette.append(track)
                 self.has_recorded = True
                 return (track["response"]["status_code"],
-                        _bypass_accept_encoding(track["response"])["headers"],
+                        _adjust_headers_for_responses(track["response"])["headers"],
                         bodys)
         return _callback
 
@@ -208,9 +209,12 @@ class Recorder(object):
         return [track['request']['url'] for track in self.cassette]
 
 
-def _bypass_accept_encoding(track_response):
+def _adjust_headers_for_responses(track_response):
     replica = copy.deepcopy(track_response)
-    content_encoding = replica["headers"].get("Content-Encoding", "")
+    replica["headers"] = {
+        key.upper(): val
+        for key, val in six.iteritems(replica["headers"])}
+    content_encoding = replica["headers"].get("CONTENT-ENCODING", "")
     if "gzip" in content_encoding:
             # the body has already been decoded by the actual http call
             # made during recording (using
@@ -223,5 +227,15 @@ def _bypass_accept_encoding(track_response):
             # to decode the response using the specified encoding,
             # thus we need to remove it since it"s been already
             # decoded
-        del replica["headers"]["Content-Encoding"]
+        del replica["headers"]["CONTENT-ENCODING"]
+    transfer_encoding = replica["headers"].get("TRANSFER-ENCODING", "")
+    if "chunked" in transfer_encoding:
+        """doesn't make senses passing Transfer-Encoding when chunked since
+        responses will build an urllib3.response.HTTPResponse object with the
+        body wrapped into a StringIO and if chunked is passed to it it will try
+        to read the body of the response from a socket like object which will
+        fail since StringIO is not a socket object (e.g. lacks an _fp
+        attribute)"""
+
+        del replica["headers"]["TRANSFER-ENCODING"]
     return replica

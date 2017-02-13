@@ -1,10 +1,12 @@
 import json
+import os
 import tempfile
 import zlib
 
 import mock
 import pytest
 import requests
+import six
 
 import pytest_vts
 
@@ -186,7 +188,47 @@ def test_match_strict_body_against_recorded_requests(vts_recorder,
                       json={"msg": "not the recorded body"})
 
 
+def test_recording_chunked_response(chpy_http_server, vts_rec_on):
+    url = "{}/chunked".format(chpy_http_server)
+    print("requesting data")
+    resp = requests.get(url)
+    assert resp.status_code == 200
+    expected_data = {"message": "Hello world"}
+    assert resp.text == json.dumps(expected_data)
+    assert len(vts_rec_on.cassette) == 1
+    track = vts_rec_on.cassette[0]
+    assert track["request"]["url"] == url
+    lower_headers = {
+        hh.lower(): vv for hh, vv
+        in six.iteritems(track["response"]["headers"])}
+    assert "transfer-encoding" in lower_headers
+    assert track["response"]["body"] == expected_data
+
+
+def old_test_recording_chunked_response(httpserver, vts_rec_on):
+    data = {"message": "content is chunked"}
+    bodys = json.dumps(data)
+    httpserver.serve_content(
+        bodys, 200,
+        headers={"Transfer-Encoding": "chunked",
+                 "Content-Type": "application/json"})
+    url = "{}/".format(httpserver.url)
+    resp = requests.get(url)
+    assert resp.status_code == 200
+    assert resp.text == bodys
+    assert resp.json() == data
+    assert len(vts_rec_on.cassette) == 1
+    track = vts_rec_on.cassette[0]
+    assert track['request']['url'] == url
+    assert "Transfer-Encoding" in track['response']['headers']
+    assert track['response']['body'] == data
+
+
 def test_catch_all_gevented_requests(vts_rec_on, movie_server):
+    """Keep this test at the very end to avoid messing up with the rest of the
+    tests, since it's monkey patching the network related operations.
+
+    Maybe write a custom pytest order enforcer later."""
     def _job():
         return http_get(movie_server.url)
 
@@ -199,3 +241,4 @@ def test_catch_all_gevented_requests(vts_rec_on, movie_server):
         pool.spawn(_job)
     pool.join()
     assert len(vts_rec_on.cassette) == 10
+

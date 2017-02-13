@@ -12,13 +12,20 @@ This project uses [Semantic Versioning][] and follows [these][keepachangelog] ch
   - to be filled in
 
 
+# v0.4.0 - 2017-02-13
+
+#### Added
+  - support for chunked http transactions
+
 # v0.3.0 - 2017-02-01
+
+#### Added
   - allow requests to be recorded in multi-(g)threaded environments.
 
 
 # v0.2.1 - 2016-07-07
-#### Fixed:
 
+#### Fixed:
   - no change, expect pypi's fixed description for CHANGELOG link
 
 
