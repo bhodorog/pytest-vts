@@ -31,6 +31,5 @@ def test_version_needs_bumping(git_describe):
 
     version_greater_than_tag = pv(pytest_vts.__version__) > pv(last_prod_tag)
     no_newer_commits_over_tag = no_of_commits == "0"
-    assert (version_greater_than_tag or no_newer_commits_over_tag,
-            "{}: {}".format(err_msg, ""))
+    assert (version_greater_than_tag or no_newer_commits_over_tag), "{}: {}".format(err_msg, "")
 
