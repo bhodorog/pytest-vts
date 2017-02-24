@@ -1,5 +1,4 @@
 import json
-import os
 import tempfile
 import zlib
 
@@ -224,6 +223,22 @@ def old_test_recording_chunked_response(httpserver, vts_rec_on):
     assert track['response']['body'] == data
 
 
+def test_recording_set_cookie_with_date_not_recorded(
+        chpy_http_server, vts_rec_on):
+    url = "{}/set-cookie-date".format(chpy_http_server)
+    resp = requests.get(url)
+    assert resp.status_code == 200
+    assert "set-cookie" not in resp.headers
+
+
+def test_recording_set_cookie_no_date_recorded(
+        chpy_http_server, vts_rec_on):
+    url = "{}/set-cookie-no-date".format(chpy_http_server)
+    resp = requests.get(url)
+    assert resp.status_code == 200
+    assert "set-cookie" in resp.headers
+
+
 def test_catch_all_gevented_requests(vts_rec_on, movie_server):
     """Keep this test at the very end to avoid messing up with the rest of the
     tests, since it's monkey patching the network related operations.
@@ -241,4 +256,3 @@ def test_catch_all_gevented_requests(vts_rec_on, movie_server):
         pool.spawn(_job)
     pool.join()
     assert len(vts_rec_on.cassette) == 10
-

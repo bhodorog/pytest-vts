@@ -4,6 +4,7 @@ import re
 import logging
 import os.path
 
+import cookies
 import py.path
 import requests
 import responses
@@ -238,4 +239,12 @@ def _adjust_headers_for_responses(track_response):
         attribute)"""
 
         del replica["headers"]["TRANSFER-ENCODING"]
+    set_cookie = replica["headers"].get("SET-COOKIE")
+    if set_cookie:
+        try:
+            cookies.Cookies.from_request(set_cookie)
+        except Exception:
+            """it seems cookies library has difficulties in parsing a set-cookie
+            header containing 'Expires=Fri, 24 Feb 2017 00:58:28 GMT'."""
+            del replica["headers"]["SET-COOKIE"]
     return replica

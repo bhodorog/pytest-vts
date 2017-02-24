@@ -52,6 +52,16 @@ class Root(object):
         return content()
     chunked._cp_config = {"response.stream": True}
 
+    @cherrypy.expose
+    def set_cookie_date(self):
+        cherrypy.response.headers["Set-Cookie"] = "Path=/; Expires=Fri, 24 Feb 2017 00:58:28 GMT; HttpOnly"
+        return b"date based set-cookie header"
+
+    @cherrypy.expose
+    def set_cookie_no_date(self):
+        cherrypy.response.headers["Set-Cookie"] = "Path=/"
+        return b"dateless set-cookie header"
+
 
 def run_cherrypy(port):
     import logging

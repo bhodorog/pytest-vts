@@ -277,6 +277,7 @@ reliable option.
       will reuse the same cassette(use the full identifier for a
       test?)
   16. Command line to reply a cassette using curl/requests?
+  17. It seems [cookies][] library used by [responses][] has problems parsing `set-cookie` headers with data format in them such as `"Expires=Fri, 24 Feb 2017 00:58:28 GMT"` and a fix to that library seems quite unlikely to happen since it looks pretty much like a dead library. Furthermore it seems [responses][] starts to be abandoned which may indicate it's stuck with resonses for a while, so maybe implementing our own requests patching might not be the worst idea ever. Or maybe get involved in responses a bit more.
 
 
 [betamax]: https://betamax.readthedocs.org/
