@@ -12,7 +12,7 @@ This project uses [Semantic Versioning][] and follows [these][keepachangelog] ch
   - to be filled in
 
 
-# v0.4.0 - 2017-02-24
+# v0.4.1 - 2017-02-24
 
 #### Changed
   - don't record set-cookie in case cookies library fails to parse
