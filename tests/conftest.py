@@ -6,7 +6,6 @@ import cherrypy
 import gevent
 import gevent.monkey
 import pytest
-import six
 
 
 def pick_a_port():
@@ -63,7 +62,7 @@ class Root(object):
         return b"dateless set-cookie header"
 
 
-def run_cherrypy(port):
+def run_cherrypy(port, root_kls=Root):
     import logging
     logging.getLogger("cherrypy").setLevel(logging.DEBUG)
     cherrypy.config.update({
@@ -72,7 +71,17 @@ def run_cherrypy(port):
         "engine.timeout_monitor.on": False,
         # "log.screen": False
     })
-    cherrypy.quickstart(Root(), "/")
+    cherrypy.quickstart(root_kls(), "/")
+
+
+def run_custom_chpy(port, request, response):
+    class CustomRoot(object):
+        @cherrypy.expose(request.url)
+        @cherrypy.tools.allow(methods=[request.method])
+        def index():
+            return response
+
+    run_cherrypy(port, root=CustomRoot)
 
 
 def _yield_to_others(sleep):
@@ -102,7 +111,6 @@ def _wait_for_server(host, port, max_retries=10):
         else:
             if b"200 OK" in data:
                 return True
-    import ipdb; ipdb.set_trace()
     raise RuntimeError(
         "The background server on {}:{} hasn't started!\n"
         "Retried {} times for a total of {} seconds".format(
@@ -121,6 +129,24 @@ def chpy_http_server():
     server = multiprocessing.Process(
         target=run_cherrypy,
         args=(port,),
+    )
+    server.start()
+    try:
+        _wait_for_server("127.0.0.1", port)
+    except Exception:
+        server.terminate()
+        raise
+    url = "http://127.0.0.1:{}".format(port)
+    yield url
+    server.terminate()
+
+
+@pytest.yield_fixture
+def chpy_custom_server(root_chpy):
+    port = pick_a_port()
+    server = multiprocessing.Process(
+        target=run_cherrypy,
+        args=(port, root_chpy)
     )
     server.start()
     try:

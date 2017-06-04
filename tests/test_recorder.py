@@ -1,7 +1,10 @@
 import json
+import random
+import six.moves.urllib as urllib
 import tempfile
 import zlib
 
+import cherrypy
 import mock
 import pytest
 import requests
@@ -48,6 +51,81 @@ def movie_server(httpserver, sample_output):
                  "X-VTS-Testing": "Reporting"})
     yield httpserver
     server.stop()
+
+
+@pytest.fixture
+def http_request(movie_server):
+    return requests.Request(method="GET", url=movie_server.url)
+
+
+def make_req(request):
+    sess = requests.Session()
+    prep = sess.prepare_request(request)
+    return sess.send(prep)
+
+
+@pytest.fixture
+def vts_recording(vts_rec_on, chpy_custom_server, http_request):
+    sep = "" if http_request.url.startswith("/") else "/"
+    url = "{}{}{}".format(chpy_custom_server, sep, http_request.url)
+    http_request.url = url
+    sess = requests.Session()
+    prep = sess.prepare_request(http_request)
+    sess.send(prep)
+    return vts_rec_on
+
+
+@pytest.fixture
+def vts_play_on(vts_recording):
+    vts_recording.setup_playback()
+    return vts_rec_on
+
+
+def unparse_qsl(qs_parts):
+    return "&".join("=".join(urllib.quote(field), urllib.quote(value))
+                    for field, value in qs_parts)
+
+
+def sorted_qs(qs):
+    # we use parse_qsl to avoid getting multiple values as list and to preserve
+    # the order of the qs_params
+    qs_parts = urllib.parse.parse_qsl(qs)
+    qs_parts_sorted = sorted(qs_parts)
+    return urllib.urlencode(qs_parts_sorted)
+
+
+def shuffle_qs(qs):
+    qs_parts = urllib.parse.parse_qsl(qs)
+    random.shuffle(qs_parts)
+    return urllib.urlencode(qs_parts)
+
+
+class QueryStrings(object):
+    @cherrypy.expose
+    def index(self):
+        return "pong"
+
+    @cherrypy.expose
+    def unsorted_qs(self, **qs_params):
+        return "ok"
+
+
+@pytest.mark.parametrize("http_request", [
+    requests.Request(method="GET",
+                     url="/unsorted-qs?ddd=3&bbb=1&aaa=0&ccc=2")])
+@pytest.mark.parametrize("root_chpy", [QueryStrings])
+def test_playback_orders_qs(vts_recording, chpy_custom_server, http_request):
+    assert vts_recording.tracks(http_request.url, ignore_qs=True)
+    track = vts_recording.tracks(http_request.url)[0]
+    _, url_qs = http_request.url.split("?")
+    _, track_qs = track["request"]["url"].split("?")
+    assert url_qs == track_qs
+    vts_recording.setup_playback()
+    vts_playing = vts_recording
+    # make the request against vts in playback mode
+    # assert the request is matched considering the qs
+    resp = make_req(http_request)
+    assert resp
 
 
 @pytest.fixture
@@ -237,6 +315,11 @@ def test_recording_set_cookie_no_date_recorded(
     resp = requests.get(url)
     assert resp.status_code == 200
     assert "set-cookie" in resp.headers
+
+
+def test_recording_ignore_qs(chpy_http_server, vts_rec_on):
+    pass
+
 
 
 def test_catch_all_gevented_requests(vts_rec_on, movie_server):

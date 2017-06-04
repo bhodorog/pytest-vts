@@ -129,7 +129,7 @@ class Recorder(object):
 
         def _callback(crt_http_req):
             if kwargs.get("strict_body") or self.strict_body:
-                assert crt_http_req.body == recorded_req.get("body"), "Recorded body doesn't match the current request's body."
+                assert _compare_bodies(crt_http_req.body, recorded_req.get("body")), "Recorded body doesn't match the current request's body."
             elif crt_http_req.body != recorded_req.get("body"):
                 err_msg = ("Requests body doesn't match recorded track's "
                            "body!!:\n{}\n!=\n{}").format(
@@ -209,6 +209,20 @@ class Recorder(object):
     def requested_urls(self):
         return [track['request']['url'] for track in self.cassette]
 
+    def tracks(self, url, ignore_qs=False):
+        ffilter = _only_path if ignore_qs else _whole_url
+        tracks = [tr for tr in self.cassette
+                  if ffilter(tr["request"]["url"]) == ffilter(url)]
+        return tracks
+
+
+def _only_path(url):
+    return url.split("?")[0]
+
+
+def _whole_url(url):
+    return url
+
 
 def _adjust_headers_for_responses(track_response):
     replica = copy.deepcopy(track_response)
@@ -248,3 +262,14 @@ def _adjust_headers_for_responses(track_response):
             header containing 'Expires=Fri, 24 Feb 2017 00:58:28 GMT'."""
             del replica["headers"]["SET-COOKIE"]
     return replica
+
+
+def _compare_bodies(left, right):
+    """rely on the fact that within the same process the hashing of dicts
+    should be consistent"""
+    try:
+        lobj = json.loads(left)
+        robj = json.loads(right)
+    except Exception:
+        return False
+    return lobj == robj
