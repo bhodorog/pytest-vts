@@ -12,6 +12,11 @@ This project uses [Semantic Versioning][] and follows [these][keepachangelog] ch
   - to be filled in
 
 
+# v0.4.2 - 2017-06-05
+#### Changed:
+  - proper comparison for request bodies when matching against recorded tracks.
+  - unittests vs python 2.7 and 3.6
+
 # v0.4.1 - 2017-02-24
 
 #### Changed

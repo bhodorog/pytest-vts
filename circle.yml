@@ -1,9 +1,9 @@
 machine:
   timezone:   Australia/Sydney
   python:
-    version:  2.7.11
+    version:  2.7.12
   post:
-     - pyenv global 2.7.11 3.5.1
+     - pyenv global 2.7.13 3.6.1
 
 dependencies:
   override:
