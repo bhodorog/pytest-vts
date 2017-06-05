@@ -4,12 +4,13 @@ test:
 pypi-sdist-clean:
 	rm -rf ./dist
 
-pypi-sdist: test pypi-sdist-clean
+pypi-sdist-wheel: test pypi-sdist-clean
 	python setup.py egg_info sdist
+	tox -e wheel
 
-pypi-upload: pypi-sdist
+pypi-upload: pypi-sdist-wheel
 	$(eval TAG := "v"$(shell python setup.py --version))
-	.tox/default/bin/twine upload --username bhodorog dist/*tar.gz
+	tox -e twine -- upload --username bhodorog dist/*
 	git -c 'user.name=Bogdan Hodorog' -c 'user.email=bogdan.hodorog@gmail.com' tag -a -m "Manually built using make" $(TAG)
 	git push origin $(TAG)
 
