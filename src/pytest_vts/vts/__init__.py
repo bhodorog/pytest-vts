@@ -128,9 +128,11 @@ class Recorder(object):
         resp = _adjust_headers_for_responses(track["response"])
 
         def _callback(crt_http_req):
+            same_body = _compare_bodies(crt_http_req.body,
+                                        recorded_req.get("body"))
             if kwargs.get("strict_body") or self.strict_body:
-                assert _compare_bodies(crt_http_req.body, recorded_req.get("body")), "Recorded body doesn't match the current request's body."
-            elif crt_http_req.body != recorded_req.get("body"):
+                assert same_body, "Recorded body doesn't match the current request's body."
+            elif not same_body:
                 err_msg = ("Requests body doesn't match recorded track's "
                            "body!!:\n{}\n!=\n{}").format(
                                crt_http_req.body, recorded_req.get("body"))

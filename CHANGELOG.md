@@ -12,6 +12,10 @@ This project uses [Semantic Versioning][] and follows [these][keepachangelog] ch
   - to be filled in
 
 
+# v0.4.3 - 2017-06-05
+#### Fixed:
+  - proper comparison for warnings when comparing request body vs recorded tracks.
+
 # v0.4.2 - 2017-06-05
 #### Changed:
   - proper comparison for request bodies when matching against recorded tracks.
