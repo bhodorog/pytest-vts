@@ -1,7 +1,6 @@
 import json
 import random
 import six.moves.urllib as urllib
-import tempfile
 import zlib
 
 import cherrypy
@@ -13,72 +12,10 @@ import six
 import pytest_vts
 
 
-@pytest.yield_fixture
-def vts_rec_on(vts_recorder, tmpdir):
-    vts_recorder.setup(basedir=tmpdir)
-    yield vts_recorder
-    vts_recorder.teardown()
-
-
-def http_get(url):
-    resp = requests.get(
-        url, headers={"Accept": "application/json"})
-    return resp
-
-
-@pytest.fixture
-def sample_output():
-    return {
-        "title": "A history of tape recorders",
-    }
-
-
-@pytest.yield_fixture
-def movie_server(httpserver, sample_output):
-    """Based on pytest_localserver.httpserver fixture.
-
-    Server port needs to remain the same, so that responses will match the
-    requests during tests against pre-recorded cassettes. Port has been choosen
-    from IANA non-asigned ones:
-    http://www.iana.org/assignments/service-names-port-numbers/service-names-port-numbers.xhtml?search=56478"""
-
-    from pytest_localserver import http
-    server = http.ContentServer()  # port=56478)
-    server.start()
-    httpserver.serve_content(
-        json.dumps(sample_output), 200,
-        headers={"Content-Type": "application/json",
-                 "X-VTS-Testing": "Reporting"})
-    yield httpserver
-    server.stop()
-
-
-@pytest.fixture
-def http_request(movie_server):
-    return requests.Request(method="GET", url=movie_server.url)
-
-
 def make_req(request):
     sess = requests.Session()
     prep = sess.prepare_request(request)
     return sess.send(prep)
-
-
-@pytest.fixture
-def vts_recording(vts_rec_on, chpy_custom_server, http_request):
-    sep = "" if http_request.url.startswith("/") else "/"
-    url = "{}{}{}".format(chpy_custom_server, sep, http_request.url)
-    http_request.url = url
-    sess = requests.Session()
-    prep = sess.prepare_request(http_request)
-    sess.send(prep)
-    return vts_rec_on
-
-
-@pytest.fixture
-def vts_play_on(vts_recording):
-    vts_recording.setup_playback()
-    return vts_rec_on
 
 
 def unparse_qsl(qs_parts):
@@ -129,12 +66,12 @@ def test_playback_orders_qs(vts_recording, chpy_custom_server, http_request):
 
 
 @pytest.fixture
-def record_cassette(vts_rec_on, movie_server):
+def record_cassette(vts_rec_on, movie_server, http_get):
     http_get(movie_server.url)
     return vts_rec_on
 
 
-def test_vts_recording(vts_rec_on, movie_server, sample_output):
+def test_vts_recording(vts_rec_on, movie_server, sample_output, http_get):
     resp = http_get(movie_server.url)
     assert resp.status_code == 200
     assert vts_rec_on.responses
@@ -230,31 +167,21 @@ def test_saving_cassette_when_it_passes(testdir):
     assert list(cassettes_dir.visit("*.json"))
 
 
-@pytest.mark.parametrize(
-    "vts",
-    [{"basedir": tempfile.gettempdir(), "cassette_name": "expected_name"}, ],
-    indirect=["vts"],
-    ids=["kwargs"])
-def test_vts_parametrize(vts):
-    assert vts.cassette_name == "expected_name"
-    assert vts._cass_dir == tempfile.gettempdir()
-
-
-def test_match_strict_body_against_recorded_requests(vts_recorder,
+def test_match_strict_body_against_recorded_requests(vts_machine,
                                                      movie_server,
                                                      monkeypatch,
                                                      tmpdir):
-    # use vts_recorder to manually control .teardown()
-    vts_recorder.setup(basedir=tmpdir)
-    assert vts_recorder.cassette == []
+    # use vts_machine to manually control .teardown()
+    vts_machine.setup(basedir=tmpdir)
+    assert vts_machine.cassette == []
     resp = requests.post(movie_server.url,
                          headers={"Accept": "application/json", "Content-Type": "application/json"},
                          data=json.dumps({"msg": "Hello"}))
-    assert vts_recorder.cassette
+    assert vts_machine.cassette
     # hack to coerce the fixture to properly teardown
-    vts_recorder._pytst_req.node.rep_call = mock.Mock(passed=True)
-    vts_recorder.teardown()
-    vts_play_on = pytest_vts.Recorder.clone(vts_recorder)
+    vts_machine._pytst_req.node.rep_call = mock.Mock(passed=True)
+    vts_machine.teardown()
+    vts_play_on = pytest_vts.Recorder.clone(vts_machine)
     vts_play_on.setup()
     recorded_body = vts_play_on.cassette[0]["request"]["body"]
     assert recorded_body
@@ -319,23 +246,3 @@ def test_recording_set_cookie_no_date_recorded(
 
 def test_recording_ignore_qs(chpy_http_server, vts_rec_on):
     pass
-
-
-
-def test_catch_all_gevented_requests(vts_rec_on, movie_server):
-    """Keep this test at the very end to avoid messing up with the rest of the
-    tests, since it's monkey patching the network related operations.
-
-    Maybe write a custom pytest order enforcer later."""
-    def _job():
-        return http_get(movie_server.url)
-
-    from gevent.pool import Pool
-    import gevent.monkey
-    gevent.monkey.patch_socket(dns=True)
-
-    pool = Pool()
-    for x in range(10):
-        pool.spawn(_job)
-    pool.join()
-    assert len(vts_rec_on.cassette) == 10

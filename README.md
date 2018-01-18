@@ -97,6 +97,7 @@ automatically determined location and the name for a [cassette][] are not
 convenable you can customize them using [`pytest.mark.parametrize` mechanism][1].
 
   - [pytest's injection mode][]:
+  
 ```python
 import pytest
 
@@ -176,23 +177,25 @@ initialize it's own copy of `responses.RequestsMock` object. This is
 to allow `vts` to manage its own `responses.start|stop|reset()` cycles
 without interfering with the default `responses.RequestsMock` object
 exposed by default by [responses][] through `response.*`
-interface. This way you can continue using `import response;
+interface. 
+
+This way you can continue using `import response;
 response.start|add|add_callback|reset|stop` in parallel with
 `vts`. However if you plan to do so remember there will be 2 instances
-trying to `mock.patch()` [requests][] so be careful and `.stop()` one
-before `start()` the other.  Obviously the last `.start`-ed one will
+trying to `mock.patch()` [requests][] so be careful and **`.stop()` one
+before `start()` the other**.  Obviously the last `.start`-ed one will
 be active. For more details on this issue read [response][]'s source
 and [unittest.mock][] docs.
 
 Beside its own copy of `response.RequestsMock` vts is responsible of:
 
-<a name="cassette">
   - building an internal copy of most information exposed by
     `responses` as a json copy. Similar with other recording libraries
-    [pytest-vts][] refers to this as a **cassette**.
-</a>
+    [pytest-vts][] refers to this as <a name="user-content-cassette">**cassette**</a>.
+
   - deciding the location of the cassette, based on the test module's
     location and the current test function/method name .
+    
   - *record*ing a new cassette, or *play*ing an existing one.
 
 
@@ -291,6 +294,10 @@ reliable option.
       doesn't consider the body when trying to match the current
       request => always the first url is matched. Consider vendoring a
       modified version of [responses][].
+  19. Add unittests for using vts as part of a higher fixture and
+      lower fixtures using [requests][]
+  20. Have vts report which tests are still making http requests
+      (using [requests][]) and suggest to use vts
 
 
 [betamax]: https://betamax.readthedocs.org/
@@ -306,4 +313,5 @@ reliable option.
 [pytest-vts]: https://pypi.python.org/pypi/pytest-vts/
 [cassette]: #user-content-cassette
 [unittest.mock]: https://docs.python.org/dev/library/unittest.mock.html#start-and-stop
-[mock][]: https://pypi.python.org/pypi/mock/
+[mock]: https://pypi.python.org/pypi/mock/
+[requests]: https://pypi.pytho.org/pypi/requests

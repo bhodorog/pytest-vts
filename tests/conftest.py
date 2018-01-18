@@ -1,11 +1,17 @@
+import json
 import multiprocessing
+import os
+import shlex
+import subprocess
 import socket
+import sys
 import time
 
 import cherrypy
 import gevent
 import gevent.monkey
 import pytest
+import requests
 
 
 def pick_a_port():
@@ -68,7 +74,7 @@ def run_cherrypy(port, root_kls=Root):
     cherrypy.config.update({
         "server.socket_port": port,
         "engine.autoreload.on": False,
-        "engine.timeout_monitor.on": False,
+        # "engine.timeout_monitor.on": False,  # removed by cherrypy > 12.0.0
         # "log.screen": False
     })
     cherrypy.quickstart(root_kls(), "/")
@@ -85,7 +91,7 @@ def run_custom_chpy(port, request, response):
 
 
 def _yield_to_others(sleep):
-    if any(
+    if False and any(
         [gevent.monkey.is_module_patched(mod)
          for mod in ["socket", "subprocess"]]):
         gevent.wait(timeout=sleep)
@@ -93,13 +99,12 @@ def _yield_to_others(sleep):
         time.sleep(sleep)
 
 
-def _wait_for_server(host, port, max_retries=10):
+def _wait_for_server(host, port, max_retries=4):
     retries = max_retries
     sleep = 0.5
     _yield_to_others(sleep)
     while retries:
         retries -= 1
-        print("retry #{}".format(max_retries - retries))
         try:
             sock = socket.create_connection((host, port))
             to_send = "GET / HTTP/1.1\r\nHost: {}:{}\r\n\r\n".format(host, port)
@@ -107,7 +112,7 @@ def _wait_for_server(host, port, max_retries=10):
             data = sock.recv(1024)
         except Exception as exc:
             print(exc)
-            pass
+            _yield_to_others(sleep)
         else:
             if b"200 OK" in data:
                 return True
@@ -157,3 +162,88 @@ def chpy_custom_server(root_chpy):
     url = "http://127.0.0.1:{}".format(port)
     yield url
     server.terminate()
+
+
+@pytest.yield_fixture
+def chpy_custom_server2():
+    port = pick_a_port()
+    cmd = "python -m tests.server_fixtures.cherry"
+    os.environ.setdefault("X-PORT", str(port))
+    server = subprocess.Popen(
+        shlex.split(cmd),
+        env=os.environ,
+        stdout=open("/tmp/cherry.out", "w+"),
+        stderr=open("/tmp/cherry.err", "w+"))
+    try:
+        _wait_for_server("127.0.0.1", port)
+    except Exception:
+        server.terminate()
+        raise
+    url = "http://127.0.0.1:{}".format(port)
+    yield url
+    server.terminate()
+
+
+@pytest.fixture
+def http_get():
+    def __inner__(url):
+        resp = requests.get(
+            url, headers={"Accept": "application/json"})
+        return resp
+    return __inner__
+
+
+@pytest.yield_fixture
+def vts_rec_on(vts_machine, tmpdir):
+    vts_machine.setup(basedir=tmpdir)
+    yield vts_machine
+    vts_machine.teardown()
+
+
+@pytest.fixture
+def http_request(movie_server):
+    return requests.Request(method="GET", url=movie_server.url)
+
+
+@pytest.fixture
+def sample_output():
+    return {
+        "title": "A history of tape recorders",
+    }
+
+
+@pytest.yield_fixture
+def movie_server(httpserver, sample_output):
+    """Based on pytest_localserver.httpserver fixture.
+
+    Server port needs to remain the same, so that responses will match the
+    requests during tests against pre-recorded cassettes. Port has been choosen
+    from IANA non-asigned ones:
+    http://www.iana.org/assignments/service-names-port-numbers/service-names-port-numbers.xhtml?search=56478"""
+
+    from pytest_localserver import http
+    server = http.ContentServer()  # port=56478)
+    server.start()
+    httpserver.serve_content(
+        json.dumps(sample_output), 200,
+        headers={"Content-Type": "application/json",
+                 "X-VTS-Testing": "Reporting"})
+    yield httpserver
+    server.stop()
+
+
+@pytest.fixture
+def vts_recording(vts_rec_on, chpy_custom_server, http_request):
+    sep = "" if http_request.url.startswith("/") else "/"
+    url = "{}{}{}".format(chpy_custom_server, sep, http_request.url)
+    http_request.url = url
+    sess = requests.Session()
+    prep = sess.prepare_request(http_request)
+    sess.send(prep)
+    return vts_rec_on
+
+
+@pytest.fixture
+def vts_play_on(vts_recording):
+    vts_recording.setup_playback()
+    return vts_rec_on

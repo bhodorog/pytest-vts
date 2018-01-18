@@ -3,8 +3,11 @@ This project uses [Semantic Versioning][] and follows [these][keepachangelog] ch
 # Unreleased
 
 #### Added:
+  - allow more customizations for naming cassettes (based on callables)
 
 #### Changed:
+  - reseting the vts recorder now waits for any background jobs
+    started by the tested code
 
 #### Removed:
 

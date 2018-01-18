@@ -1,6 +1,6 @@
 import pytest
 
-from .vts import Recorder
+from .vts.machine import Recorder
 from .version import __version__  # noqa
 
 recorder = None
@@ -15,7 +15,7 @@ def pytest_runtest_makereport(item, call):
 
 
 @pytest.fixture
-def vts_recorder(request):
+def vts_machine(request):
     """create a VTS recorder in an undefined state"""
     param = getattr(request, "param", {})
     if param and not isinstance(param, dict):
@@ -26,7 +26,7 @@ def vts_recorder(request):
 
 
 @pytest.fixture
-def vts(request, vts_recorder):
+def vts(request, vts_machine):
     """transform a recorder into a fixture by applying setup/teardown
     phases. Invokation of setup() flips the fixture in one of the available
     statest: recording or playing"""
@@ -34,8 +34,8 @@ def vts(request, vts_recorder):
     if param and not isinstance(param, dict):
         raise Exception("pytest-vts configuration error! Currently you can"
                         " configure pytest-vts's fixtures with dicts objects")
-    vts_recorder.setup(**param)
-    request.addfinalizer(vts_recorder.teardown)
+    vts_machine.setup(**param)
+    request.addfinalizer(vts_machine.teardown)
     global recorder
-    recorder = vts_recorder
-    return vts_recorder
+    recorder = vts_machine
+    return vts_machine
