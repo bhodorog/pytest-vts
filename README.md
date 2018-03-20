@@ -298,6 +298,8 @@ reliable option.
       lower fixtures using [requests][]
   20. Have vts report which tests are still making http requests
       (using [requests][]) and suggest to use vts
+  21. Audit the existing cassettes for changes in upstream responses
+      compared with the recorded ones.
 
 
 [betamax]: https://betamax.readthedocs.org/
