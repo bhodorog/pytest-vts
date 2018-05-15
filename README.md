@@ -70,7 +70,7 @@ def test_list_repositories(vts):
 $ ls ./cassettes
 ls: ./cassettes: No such file or directory
 $ ls ./
-github_client.py test_github_client.py 
+github_client.py test_github_client.py
 # recording
 $ py.test test_github_client.py::test_func
 # vts will use requests library to forward the request to
@@ -97,14 +97,39 @@ automatically determined location and the name for a [cassette][] are not
 convenable you can customize them using [`pytest.mark.parametrize` mechanism][1].
 
   - [pytest's injection mode][]:
-  
+
 ```python
 import pytest
 
-@pytest.mark.parametrize("vts", [{"basedir": "", "cassette_name": ""}], indirect=["vts"])
+# using strings
+
+@pytest.mark.parametrize(
+    "vts",
+    [
+        {
+            "basedir": os.path.expanduser("~"),
+            "cassette_name": "custom_name"
+         }
+    ],
+    indirect=["vts"])
 def test_list_repositories(vts):
     github_client.list_repositories()
     assert vts.calls
+    assert vts.cassette_name.endswith("custom_name")
+
+# using a callable
+
+def custom_name(pytest_req):
+    """pytest_req is an instance of
+    https://docs.pytest.org/en/latest/reference.html#_pytest.fixtures.FixtureRequest
+    """"
+    return pytest_req.node.name + "custom"
+
+@pytest.mark.parametrize("vts", [{"cassette_name": custom_name}], indirect=["vts"])
+def test_list_repositories(vts):
+    github_client.list_repositories()
+    assert vts.calls
+    assert vts.cassette_name.endswith("custom")
 ```
 
   - non-injection mode. If vts fixture handle is not needed inside the
@@ -191,18 +216,18 @@ def change_response_wrapper(func):
             return status, r_headers, body
         return status, r_headers, json.dumps(loaded_body)
     return _inner
-    
+
 @pytest.fixture
 def vts_requests_wrapper():
     return change_response_wrapper
-    
+
 def test_simple(vts):
     your_url = 'http://your.url'
     resp = requests.get(your_url)
     assert 'X-Added-By' in resp.headers
     assert 'added_by' in resp.json()
     vts_recorded_trx = [
-        track for track in vts.cassette 
+        track for track in vts.cassette
         if your_url in track['request']['url]]
     assert '?added-by=vts-response-wrapper' in vts_recorded_trx[0]['request']['url']
     assert '?added-by=vts-response-wrapper' not in resp.request.url
@@ -215,7 +240,7 @@ initialize it's own copy of `responses.RequestsMock` object. This is
 to allow `vts` to manage its own `responses.start|stop|reset()` cycles
 without interfering with the default `responses.RequestsMock` object
 exposed by default by [responses][] through `response.*`
-interface. 
+interface.
 
 This way you can continue using `import response;
 response.start|add|add_callback|reset|stop` in parallel with
@@ -233,7 +258,7 @@ Beside its own copy of `response.RequestsMock` vts is responsible of:
 
   - deciding the location of the cassette, based on the test module's
     location and the current test function/method name .
-    
+
   - *record*ing a new cassette, or *play*ing an existing one.
 
 
@@ -281,10 +306,10 @@ reliable option.
 
 # Future features?
   1. implement various strategies of handling new/missing requests
-  from cassette-recorded. Currently when a new request not recorded
-  for a test happens the behaviour defined by the mocking library
-  happens.  (e.g. [responses][] will raise a
-  `requests.exceptions.ConnectionError`)
+     from cassette-recorded. Currently a new, un-recorded request will
+     exibit the behaviour defined by the mocking library for that kind of
+     requests. (e.g. [responses][] will raise a
+     `requests.exceptions.ConnectionError`)
   2. serialize requests' `response.history` to cassette json.
   3. support other http-mocking libraries (probably those with
      callbacks as mock responses? - most of them have that).
@@ -294,7 +319,7 @@ reliable option.
   5. add an information text about test being recorded/playbacked in
      the -vv output of pytest.
   6. consider having tracks saved in their own files to avoid having
-     cassettes to big
+     large cassettes
   7. resolve potential conflicts in automatic naming of cassette (same
      test method in 2 different module in the same pacakge) files,
      maybe by using their module name as prefix?
@@ -303,10 +328,10 @@ reliable option.
      `['response']`. Keep the first one? The last one? Raise? Keep?
      make use of [responses][]' `assert_all_requests_are_fired`? Keep
      all duplicates and support responses' functionality.
-  10. have separate objects (sides?) for tracks recorded during tests
-     vs recorded during fixture setup/teardown?
-  11. [DONE] have playback callbacks raising when the body of the
-      request doesn't match the body of the recorded request
+  10. have separate objects (cassette's sides?) for tracks recorded
+      during tests vs recorded during fixture setup/teardown?
+  11. [DONE] ~~have playback callbacks raising when the body of the
+      request doesn't match the body of the recorded request~~
   12. extend the above behaviour for headers/query_strings/selective
       headers?
   13. the body of the requests is string. Would be more practical to
@@ -314,9 +339,9 @@ reliable option.
   14. Improve the api interface to configure the vts fixture for a
       test (e.g. set always recording/playing, don't save cassette,
       etc)
-  15. Currently having 2 tests with the same name in different classes
-      will reuse the same cassette(use the full identifier for a
-      test?)
+  15. [DONE-although not default yet]~~Currently having 2 tests with
+      the same name in different classes will reuse the same
+      cassette(use the full identifier for a test?)~~
   16. Command line to reply a cassette using curl/requests?
   17. It seems [cookies][] library used by [responses][] has problems
       parsing `set-cookie` headers with data format in them such as
@@ -335,7 +360,7 @@ reliable option.
   19. Add unittests for using vts as part of a higher fixture and
       lower fixtures using [requests][]
   20. Have vts report which tests are still making http requests
-      (using [requests][]) and suggest to use vts
+j      (using [requests][]) and suggest to use vts
   21. Audit the existing cassettes for changes in upstream responses
       compared with the recorded ones.
 

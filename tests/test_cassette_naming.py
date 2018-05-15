@@ -1,5 +1,6 @@
 import pytest
 import tempfile
+from pytest_vts.vts.machine import class_function_name
 
 
 @pytest.mark.parametrize(
@@ -16,6 +17,7 @@ def test_method(vts):
     assert test_method.__name__ in vts.cassette_name
 
 
+@pytest.mark.parametrize("vts", [{"cassette_name": class_function_name}], indirect=["vts"])
 class TestNamespace(object):
     def test_method(self, vts):
         assert self.__class__.__name__ in vts.cassette_name
@@ -35,6 +37,7 @@ def test_method_parametrize(vts, one):
 
 
 @pytest.mark.parametrize("one", map(str, range(3)))
+@pytest.mark.parametrize("vts", [{"cassette_name": class_function_name}], indirect=["vts"])
 class TestParametrize(object):
     def test_method(self, vts, one):
         assert self.__class__.__name__ in vts.cassette_name

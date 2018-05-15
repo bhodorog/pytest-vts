@@ -5,7 +5,7 @@ This project uses [Semantic Versioning][] and follows [these][keepachangelog] ch
 #### Added:
   - allow more customizations for naming cassettes (based on
     callables), although for now the old convention of naming
-    cassettes is still being used.
+    cassettes is still being the default one.
     
   - allow for custome wrappers around HTTP transactions mocked by vts
 
