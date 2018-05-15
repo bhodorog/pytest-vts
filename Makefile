@@ -1,5 +1,5 @@
 test:
-	tox -- ./tests
+	tox
 
 pypi-sdist-clean:
 	rm -rf ./dist
