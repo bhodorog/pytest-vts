@@ -1,4 +1,5 @@
 import copy
+import functools
 import json
 import re
 import logging
@@ -31,6 +32,40 @@ def class_function_name(pytest_req):
     class_name = pytest_req.cls.__name__ if getattr(pytest_req, "cls") else ""
     rv = ".".join([class_name, function_name])
     return rv.strip(".")
+
+
+def no_op(func):
+    @functools.wraps(func)
+    def _inner(prep_req, *args, **kwargs):
+        return func(prep_req, *args, **kwargs)
+    return _inner
+
+
+def _make_urllib3(http_prep_req):
+    try:
+        # carefull with this since it's silencing any Insecure SSL warnings
+        requests.packages.urllib3.disable_warnings()
+        pm = requests.packages.urllib3.PoolManager()
+        resp = pm.urlopen(
+            method=http_prep_req.method,
+            url=http_prep_req.url,
+            body=http_prep_req.body,
+            headers=http_prep_req.headers,
+            redirect=False,
+            assert_same_host=False,
+            preload_content=False,
+            decode_content=True,
+            retries=3,
+        )
+    except:
+        raise
+    else:
+        try:
+            body = json.loads(resp.data.decode("utf-8"))
+            bodys = json.dumps(body)
+        except ValueError:
+            body = bodys = resp.data.decode("utf-8")
+        return resp.status, dict(resp.headers.items()), bodys
 
 
 class Recorder(object):
@@ -82,11 +117,13 @@ class Recorder(object):
         self.responses.start()
         force_recording = os.environ.get("PYTEST_VTS_FORCE_RECORDING", False)
         if not self.has_cassette or force_recording:
-            self.setup_recording(**kwargs.get("rec_kwargs", {}))
+            self.setup_recording(
+                kwargs.get("request_wrapper", no_op),
+                **kwargs.get("rec_kwargs", {}))
         else:
             self.setup_playback(**kwargs.get("play_kwargs", {}))
 
-    def setup_recording(self, **kwargs):
+    def setup_recording(self, request_wrapper=no_op, **kwargs):
         _logger.info("setup recording ...")
         self.is_recording = True
         self.is_playing = False
@@ -95,19 +132,20 @@ class Recorder(object):
         methods = (responses.GET, responses.POST, responses.PUT,
                    responses.PATCH, responses.DELETE, responses.HEAD,
                    responses.OPTIONS)
+        callback = self.record(request_wrapper(_make_urllib3))
         for http_method in methods:
             self.responses.add_callback(
                 http_method, all_requests_re,
                 match_querystring=False,
-                callback=self.record())
+                callback=callback)
 
-    def setup_playback(self, **kwargs):
+    def setup_playback(self, request_wrapper=no_op, **kwargs):
         _logger.info("setup playback ...")
         self.is_recording = False
         self.is_playing = True
         self._insert_cassette()
         self.responses.reset()  # reset recording matchers
-        self.rewind_cassette(**kwargs)
+        self.rewind_cassette(request_wrapper, **kwargs)
 
     def teardown(self):
         _logger.info("teardown ...")
@@ -163,20 +201,67 @@ class Recorder(object):
                     json.dumps(resp["body"]))
         return _callback
 
-    def rewind_cassette(self, **kwargs):
+    def rewind_cassette(self, request_wrapper, **kwargs):
         for track in self.cassette:
             req = track["request"]
+            callback = request_wrapper(self.play(track, **kwargs))
             self.responses.add_callback(
                 req["method"], req["url"],
                 match_querystring=True,
-                callback=self.play(track, **kwargs))
+                callback=callback)
 
     def _insert_cassette(self):
         if not self.has_recorded:
             data = self._cass_file().read_text("utf8")
             self.cassette = json.loads(data)
 
-    def record(self):
+    def record(self, _make_func=_make_urllib3):
+        """Uses urllib3 to fetch the urls which needs to be
+        recorded. Having the request already prepacked for requests would
+        make it easier to use requests, it means we need to temporarily
+        stop responses until we fetch the response. This introduces
+        isolation problems since HTTP requests made by other execution
+        units (green thread, os threads) while responses is stopped won't
+        be intercepted and persisted in the cassette."""
+        def _callback(http_prep_req):
+            status, headers, body = _make_func(http_prep_req)
+            track = self.build_track(http_prep_req,
+                                     status, headers, _json_or_str(body))
+            self.cassette.append(track)
+            self.has_recorded = True
+            responses_friendly_headers = _adjust_headers_for_responses(
+                track["response"])["headers"]
+            return status, responses_friendly_headers, body
+
+        return _callback
+
+    def build_track(self, http_prep_req, status, headers, body):
+        track = {}
+        track["request"] = {
+            "method": http_prep_req.method,
+            "url": http_prep_req.url,
+            "path": http_prep_req.path_url,
+            "headers": dict(http_prep_req.headers.items()),
+            "body": http_prep_req.body,
+        }
+        track["response"] = {
+            "status_code": status,
+            "headers": headers,
+            "body": body,
+        }
+        return track
+
+    @property
+    def requested_urls(self):
+        return [track['request']['url'] for track in self.cassette]
+
+    def tracks(self, url, ignore_qs=False):
+        ffilter = _only_path if ignore_qs else _whole_url
+        tracks = [tr for tr in self.cassette
+                  if ffilter(tr["request"]["url"]) == ffilter(url)]
+        return tracks
+
+    def record_old(self):
         def _callback(http_prep_req):
             """Uses urllib3 to fetch the urls which needs to be
             recorded. Having the request already prepacked for requests would
@@ -228,16 +313,6 @@ class Recorder(object):
                         bodys)
         return _callback
 
-    @property
-    def requested_urls(self):
-        return [track['request']['url'] for track in self.cassette]
-
-    def tracks(self, url, ignore_qs=False):
-        ffilter = _only_path if ignore_qs else _whole_url
-        tracks = [tr for tr in self.cassette
-                  if ffilter(tr["request"]["url"]) == ffilter(url)]
-        return tracks
-
 
 def _only_path(url):
     return url.split("?")[0]
@@ -285,6 +360,14 @@ def _adjust_headers_for_responses(track_response):
             header containing 'Expires=Fri, 24 Feb 2017 00:58:28 GMT'."""
             del replica["headers"]["SET-COOKIE"]
     return replica
+
+
+def _json_or_str(body):
+    try:
+        body_j = json.loads(body)
+    except ValueError:
+        return body
+    return body_j
 
 
 def _compare_bodies(left, right):

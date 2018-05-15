@@ -171,6 +171,44 @@ class TestMoreTests(object):
         github_client.list_repositories()
 ```
 
+### Custom wrappers around HTTP transaction mocked by vts (via responses)
+[pytest-vts][] now will use a fixture named `vts_request_wrapper`
+which by default is defined as a no-op (basically behaves as prior to
+adding this feature). You can define your own wrapper and modify the
+request/response as you see fit.
+```python
+def change_response_wrapper(func):
+    @functools.wraps(func)
+    def _inner(prep_req, *args, **kwargs):
+        prep_req.url = prep_req.url + '?added-by=vts-response-wrapper'
+        status, r_headers, body = func(prep_req, *args, **kwargs)
+        r_headers['X-Added-By'] = 'vts-response-wrapper'
+        try:
+            loaded_body = json.loads(body)
+            loaded_body['added_by'] = 'vts-response-wrapper'
+        except Exception as exc:
+            print(exc)
+            return status, r_headers, body
+        return status, r_headers, json.dumps(loaded_body)
+    return _inner
+    
+@pytest.fixture
+def vts_requests_wrapper():
+    return change_response_wrapper
+    
+def test_simple(vts):
+    your_url = 'http://your.url'
+    resp = requests.get(your_url)
+    assert 'X-Added-By' in resp.headers
+    assert 'added_by' in resp.json()
+    vts_recorded_trx = [
+        track for track in vts.cassette 
+        if your_url in track['request']['url]]
+    assert '?added-by=vts-response-wrapper' in vts_recorded_trx[0]['request']['url']
+    assert '?added-by=vts-response-wrapper' not in resp.request.url
+```
+
+
 # How does it actually work?
 The vts fixture exposes an instance of a `vts.Recorder` class which
 initialize it's own copy of `responses.RequestsMock` object. This is
