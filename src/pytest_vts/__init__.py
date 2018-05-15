@@ -1,6 +1,6 @@
 import pytest
 
-from .vts.machine import Recorder
+from .vts.machine import Recorder, no_op
 from .version import __version__  # noqa
 
 recorder = None
@@ -26,7 +26,7 @@ def vts_machine(request):
 
 
 @pytest.fixture
-def vts(request, vts_machine):
+def vts(request, vts_machine, vts_request_wrapper):
     """transform a recorder into a fixture by applying setup/teardown
     phases. Invokation of setup() flips the fixture in one of the available
     statest: recording or playing"""
@@ -34,8 +34,14 @@ def vts(request, vts_machine):
     if param and not isinstance(param, dict):
         raise Exception("pytest-vts configuration error! Currently you can"
                         " configure pytest-vts's fixtures with dicts objects")
+    param.update({"request_wrapper": vts_request_wrapper})
     vts_machine.setup(**param)
     request.addfinalizer(vts_machine.teardown)
     global recorder
     recorder = vts_machine
     return vts_machine
+
+
+@pytest.fixture
+def vts_request_wrapper():
+    return no_op

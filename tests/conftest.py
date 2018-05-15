@@ -193,9 +193,9 @@ def http_get():
     return __inner__
 
 
-@pytest.yield_fixture
-def vts_rec_on(vts_machine, tmpdir):
-    vts_machine.setup(basedir=tmpdir)
+@pytest.fixture
+def vts_rec_on(vts_machine, tmpdir, vts_request_wrapper):
+    vts_machine.setup(basedir=tmpdir, request_wrapper=vts_request_wrapper)
     yield vts_machine
     vts_machine.teardown()
 
@@ -243,7 +243,7 @@ def vts_recording(vts_rec_on, chpy_custom_server, http_request):
     return vts_rec_on
 
 
-@pytest.fixture
-def vts_play_on(vts_recording):
-    vts_recording.setup_playback()
-    return vts_rec_on
+# @pytest.fixture
+# def vts_play_on(vts_recording):
+#     vts_recording.setup_playback()
+#     return vts_rec_on
