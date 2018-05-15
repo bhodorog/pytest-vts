@@ -81,7 +81,7 @@ class Recorder(object):
     directly json serializable therefore a json version of the `.cassette` is
     being constructed from `.calls`
     """
-    def __init__(self, pytest_req, basedir=None, cassette_name=class_function_name):
+    def __init__(self, pytest_req, basedir=None, cassette_name=function_name):
         self.cassette = []
         self.has_recorded = False
         self.is_recording = self.is_playing = False
@@ -110,7 +110,7 @@ class Recorder(object):
             return self._pytst_req.fspath.dirpath().join("cassettes")
         return py.path.local(basedir, expanduser=True)
 
-    def setup(self, basedir=None, cassette_name=class_function_name, **kwargs):
+    def setup(self, basedir=None, cassette_name=function_name, **kwargs):
         if basedir:
             self._cass_dir = self._init_destination(basedir)
         self._init_cassette_name(cassette_name)
