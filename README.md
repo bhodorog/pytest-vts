@@ -6,9 +6,23 @@ Automatic recorder for http stubbed [pytest][](s) using [responses][]
 library. VTS stands for Video Tests System and has been inspired from
 [VHS][Videotape format war wiki].
 
+# TOC
+1. [How to use it](#how-to-use-it)
+    1. [Simple example](#simple-example)
+    2. [Customise vts fixture](#customise-vts)
+        1. [Record or playback?](#record-playback)
+        2. [Cassette location and name](#location-name)
+        3. [Body strict comparison](#body-strict)
+        4. [Custom HTTP trx wrappers](#custom-wrappers)
+2. [How does it actually work?](#how-it-works)
+3. [Why this?](#why-this)
+4. [Why pytest plugin?](#why-pytest)
+5. [Why responses?](#why-responses)
+6. [Future work](#future-work)
 
 
-# How to use it
+
+# <a name="how-to-use-it"/> How to use it 
 
   1. Add as dependency/Install via pip:
   - from PyPI (**recommended**): `pytest-vts`
@@ -25,7 +39,7 @@ library. VTS stands for Video Tests System and has been inspired from
   2. Once installed the package provides a [pytest fixture][] named `vts`which
   you can use for your tests.
 
-## Simple example, showing available assertions
+## <a name="simple-example"/> Simple example, showing available assertions
 
 ### Source Code
 
@@ -84,14 +98,15 @@ $ py.test test_github_client.py::test_func
 # cassette
 ```
 
-## Customize the vts fixture
-### Record or playback?
+## <a name="customise-vts"/> Customise the vts fixture
+
+### <a name="record-playback"/> Record or playback?
 Out of the box [pytest-vts][] will switch itself into *recording* mode
 each time a [cassette][] file is not found. This can be overriden by using
 an environment variable `PYTEST_VTS_FORCE_RECORDING` which will allow
 you to re-record an existing cassette
 
-### Cassette location and name
+### <a name="location-name"/> Cassette location and name
 When using the  of the vts fixture, if the
 automatically determined location and the name for a [cassette][] are not
 convenable you can customize them using [`pytest.mark.parametrize` mechanism][1].
@@ -151,7 +166,7 @@ class TestMoreTests(object):
         github_client.list_repositories()
 ```
 
-### Strict comparison for playback mode
+### <a name="body-strict"/> Strict comparison for playback mode
 Strict mode specifies the precision of the comparison of the current
 http request and the recorded request is made. By default responses
 will compare the current http request against the recorded requests
@@ -196,7 +211,7 @@ class TestMoreTests(object):
         github_client.list_repositories()
 ```
 
-### Custom wrappers around HTTP transaction mocked by vts (via responses)
+### <a name="custom-wrappers"/> Custom wrappers around HTTP transaction mocked by vts (via responses)
 [pytest-vts][] now will use a fixture named `vts_request_wrapper`
 which by default is defined as a no-op (basically behaves as prior to
 adding this feature). You can define your own wrapper and modify the
@@ -234,7 +249,7 @@ def test_simple(vts):
 ```
 
 
-# How does it actually work?
+# <a name="how-it-works"/> How does it actually work?
 The vts fixture exposes an instance of a `vts.Recorder` class which
 initialize it's own copy of `responses.RequestsMock` object. This is
 to allow `vts` to manage its own `responses.start|stop|reset()` cycles
@@ -262,7 +277,7 @@ Beside its own copy of `response.RequestsMock` vts is responsible of:
   - *record*ing a new cassette, or *play*ing an existing one.
 
 
-# Why this and not other http mocking and recording library?
+# <a name="why-this"/> Why this and not other http mocking and recording library?
 Because the current available options have some shortcommings which
 **vts** tries to address, probably not without introducing some of
 its own :) :
@@ -283,7 +298,7 @@ So far, [pytest-vts][] has been succesfully used to automate the
 testing of an application which heavily relies on making HTTP requests
 on upstream web based APIs.
 
-# Why a pytest plugin and not standalone?
+# <a name="why-pytest"/> Why a pytest plugin and not standalone?
 Because, among a lot of features, [pytest][] offers fixtures and tests
 introspections out of the box, complemented by an awesome development
 support (to name just a few: pytester builtin fixture,
@@ -300,11 +315,11 @@ features such as:
 The above examples of how to customize the vts fixture are in fact
 pytest's fixtures features.
 
-# Why supporting [responses][] and not others?
+# <a name="why-responses"/> Why supporting [responses][] and not others?
 Because I think its API is familiar and proved itself as a very
 reliable option.
 
-# Future features?
+# <a name="future-work"/> Future features?
   1. implement various strategies of handling new/missing requests
      from cassette-recorded. Currently a new, un-recorded request will
      exibit the behaviour defined by the mocking library for that kind of
