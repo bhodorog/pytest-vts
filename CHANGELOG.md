@@ -1,9 +1,13 @@
 This project uses [Semantic Versioning][] and follows [these][keepachangelog] changelog guidelines.
 
-# Unreleased
+# v0.4.4 - 2018-05-15
 
 #### Added:
-  - allow more customizations for naming cassettes (based on callables)
+  - allow more customizations for naming cassettes (based on
+    callables), although for now the old convention of naming
+    cassettes is still being used.
+    
+  - allow for custome wrappers around HTTP transactions mocked by vts
 
 #### Changed:
   - reseting the vts recorder now waits for any background jobs
