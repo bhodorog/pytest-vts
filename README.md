@@ -3,10 +3,10 @@
 [![PyPi version](https://img.shields.io/pypi/v/pytest-vts.svg)](https://pypi.python.org/pypi/pytest-vts/)
 
 Automatic recorder for http stubbed [pytest][](s) using [responses][]
-library. VTS stands for Video Tests System and has been inspired from
+library. VTS stands for Video Tests System and has been inspired by
 [VHS][Videotape format war wiki].
 
-# TOC
+
 1. [How to use it](#how-to-use-it)
     1. [Simple example](#simple-example)
     2. [Customise vts fixture](#customise-vts)
