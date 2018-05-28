@@ -22,7 +22,7 @@ library. VTS stands for Video Tests System and has been inspired by
 
 
 
-# <a name="how-to-use-it"/> How to use it 
+# <a name="how-to-use-it"/> How to use it
 
   1. Add as dependency/Install via pip:
   - from PyPI (**recommended**): `pytest-vts`
@@ -233,7 +233,7 @@ def change_response_wrapper(func):
     return _inner
 
 @pytest.fixture
-def vts_requests_wrapper():
+def vts_request_wrapper():
     return change_response_wrapper
 
 def test_simple(vts):
