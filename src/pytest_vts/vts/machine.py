@@ -121,7 +121,9 @@ class Recorder(object):
                 kwargs.get("request_wrapper", no_op),
                 **kwargs.get("rec_kwargs", {}))
         else:
-            self.setup_playback(**kwargs.get("play_kwargs", {}))
+            self.setup_playback(
+                kwargs.get("request_wrapper", no_op),
+                **kwargs.get("play_kwargs", {}))
 
     def setup_recording(self, request_wrapper=no_op, **kwargs):
         _logger.info("setup recording ...")

@@ -1,12 +1,15 @@
 This project uses [Semantic Versioning][] and follows [these][keepachangelog] changelog guidelines.
 
+# v0.4.5 - 2018-06-18
+  - custom wrappers now work properly in playback mode
+
 # v0.4.4 - 2018-05-15
 
 #### Added:
   - allow more customizations for naming cassettes (based on
     callables), although for now the old convention of naming
     cassettes is still being the default one.
-    
+
   - allow for custome wrappers around HTTP transactions mocked by vts
 
 #### Changed:
