@@ -25,7 +25,7 @@ def test_version_needs_bumping(git_describe):
     last_prod_tag, no_of_commits = git_describe
     pv = pkg_resources.parse_version
     err_msg_prefix = "Bump the version following PEP440 rules"
-    err_msg = ("{}: bondi.__version__({}) should be > than last prod tag "
+    err_msg = ("{}: pytest_vts.__version__({}) should be > than last prod tag "
                "({})").format(err_msg_prefix,
                               pytest_vts.__version__, last_prod_tag)
 
