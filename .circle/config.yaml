@@ -1,0 +1,31 @@
+version: 2
+workflows:
+  version: 2
+  test:
+    jobs:
+      - test-2.7
+      - test-3.6
+      - test-3.7
+jobs:
+  test-3.7: &test-template
+    docker:
+      - image: circleci/python:3.7-stretch
+    steps:
+      - checkout
+      - run:
+          name: Install dependencies
+          command: |
+            virtualenv tox-ve || python -m venv tox-ve
+            . tox-ve/bin/pip install tox tox-battery
+      - run:
+          name: Run tests
+          command: |
+            tox-ve/bin/tox
+  test-3.6:
+    <<: *test-template
+    docker:
+      - image: circleci/python3.6-stretch
+  test-2.7:
+    <<: *test-template
+    docker:
+      - image: circleci/python2.7-stretch
