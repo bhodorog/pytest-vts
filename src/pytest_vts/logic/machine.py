@@ -23,6 +23,11 @@ class RequestBodyDoesntMatchTrack(Exception):
     pass
 
 
+def ensure_text_silent(s, *args, **kwargs):
+    if s is None:
+        return s
+    return six.ensure_text(s, *args, **kwargs)
+
 def function_name(pytest_req):
     return pytest_req.node.name
 
@@ -244,7 +249,7 @@ class Recorder(object):
             "url": http_prep_req.url,
             "path": http_prep_req.path_url,
             "headers": dict(http_prep_req.headers.items()),
-            "body": http_prep_req.body,
+            "body": ensure_text_silent(http_prep_req.body),
         }
         track["response"] = {
             "status_code": status,
@@ -306,7 +311,7 @@ class Recorder(object):
                 track["response"] = {
                     "status_code": resp.status,
                     "headers": dict(resp.headers.items()),
-                    "body": body,
+                    "body": ensure_text_silent(body),
                 }
                 self.cassette.append(track)
                 self.has_recorded = True
@@ -365,6 +370,7 @@ def _json_or_str(body):
     except ValueError:
         return body
     return body_j
+
 
 
 def _compare_bodies(left, right):

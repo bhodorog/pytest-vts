@@ -250,3 +250,23 @@ def test_recording_set_cookie_no_date_recorded(
 
 def test_recording_ignore_qs(chpy_http_server, vts_rec_on):
     pass
+
+
+def test_requests_post_using_json(chpy_http_server, vts_rec_on):
+    url = "{}/json".format(chpy_http_server)
+    payload = {'query': 'what do you say'}
+    resp = requests.post(url, json=payload)
+    assert resp.status_code == 200
+    assert len(vts_rec_on.cassette) == 1
+    track = vts_rec_on.cassette[0]
+    body_0 = track['request']['body']
+    resp = requests.post(url, data=json.dumps(payload))
+    assert resp.status_code == 200
+    assert len(vts_rec_on.cassette) == 2
+    track = vts_rec_on.cassette[1]
+    body_1 = track['request']['body']
+    # both should have the same type on python3 (preferable string, not binary
+    # - the encoding to binary will be handled by json.dumps)
+    assert body_0 == body_1
+    # ultimatelly save the cassette file to rule out any other issue
+    vts_rec_on._save_cassette()
