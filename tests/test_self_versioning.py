@@ -14,6 +14,8 @@ def git_describe():
                             stderr=subprocess.PIPE)
     out, err = proc.communicate()
     described = out.decode().strip("\n")
+    print("\n\nDEBUG out: {}\n".format(out))
+    print("DEBUG err: {}\n".format(err))
     reversed_described = described[::-1]
     rev_gitref, rev_no_of_commits, rev_tag = reversed_described.split("-", 2)
     tag = rev_tag[::-1]
@@ -32,4 +34,3 @@ def test_version_needs_bumping(git_describe):
     version_greater_than_tag = pv(pytest_vts.__version__) > pv(last_prod_tag)
     no_newer_commits_over_tag = no_of_commits == "0"
     assert (version_greater_than_tag or no_newer_commits_over_tag), "{}: {}".format(err_msg, "")
-

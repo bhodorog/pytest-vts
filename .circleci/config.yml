@@ -1,3 +1,10 @@
+tox-install: &tox-install
+  name: Setup tox virtualenv
+  command: |
+    virtualenv tox-venv || python -m venv tox-venv
+    . tox-venv/bin/activate
+    pip install tox tox-battery
+
 version: 2
 workflows:
   version: 2
@@ -7,25 +14,51 @@ workflows:
       - test-3.6
       - test-3.7
 jobs:
-  test-3.7: &test-template
+  test-3.7:
     docker:
       - image: circleci/python:3.7-stretch
     steps:
       - checkout
+      - run: *tox-install
       - run:
-          name: Install dependencies
+          name: Run default tests
           command: |
-            virtualenv tox-ve || python -m venv tox-ve
-            . tox-ve/bin/pip install tox tox-battery
+            . tox-venv/bin/activate
+            tox -e py37-default -- -s tests/test_self_versioning.py
       - run:
-          name: Run tests
+          name: Run gevent-ed tests
           command: |
-            tox-ve/bin/tox
+            . tox-venv/bin/activate
+            tox -e py37-gevented
   test-3.6:
-    <<: *test-template
     docker:
-      - image: circleci/python3.6-stretch
+      - image: circleci/python:3.6-stretch
+    steps:
+      - checkout
+      - run: *tox-install
+      - run:
+          name: Run default tests
+          command: |
+            . tox-venv/bin/activate
+            tox -e py36-default
+      - run:
+          name: Run gevent-ed tests
+          command: |
+            . tox-venv/bin/activate
+            tox -e py36-gevented
   test-2.7:
-    <<: *test-template
     docker:
-      - image: circleci/python2.7-stretch
+      - image: circleci/python:2.7-stretch
+    steps:
+      - checkout
+      - run: *tox-install
+      - run:
+          name: Run default tests
+          command: |
+            . tox-venv/bin/activate
+            tox -e py27-default
+      - run:
+          name: Run gevent-ed tests
+          command: |
+            . tox-venv/bin/activate
+            tox -e py27-gevented
