@@ -5,7 +5,6 @@ import re
 import logging
 import os.path
 
-import cookies
 import py.path
 import requests
 import responses
