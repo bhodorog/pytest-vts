@@ -1,6 +1,18 @@
 This project uses [Semantic Versioning][] and follows [these][keepachangelog] changelog guidelines.
 
+# v0.4.6 - 2019-06-27
+#### Fixed:
+
+  - update the patch for responses' cookie parsing library.
+
+      - supports latest responses
+
+  - properly keep strings as six.text_types in the cassete
+
+      - should fix using `requests.post(url, json=dict(...))`
+
 # v0.4.5 - 2018-06-18
+####Fixed:
   - custom wrappers now work properly in playback mode
 
 # v0.4.4 - 2018-05-15
