@@ -1,6 +1,6 @@
 import pytest
 
-from .vts.machine import Recorder, no_op
+from .logic.machine import Recorder, no_op
 from .version import __version__  # noqa
 
 recorder = None

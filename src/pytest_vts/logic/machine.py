@@ -11,6 +11,7 @@ import requests
 import responses
 import six
 
+from pytest_vts.logic._compat.cookie_parsing_library_errors import is_failing_parsing
 
 _logger = logging.getLogger(__name__)
 
@@ -354,13 +355,8 @@ def _adjust_headers_for_responses(track_response):
 
         del replica["headers"]["TRANSFER-ENCODING"]
     set_cookie = replica["headers"].get("SET-COOKIE")
-    if set_cookie:
-        try:
-            cookies.Cookies.from_request(set_cookie)
-        except Exception:
-            """it seems cookies library has difficulties in parsing a set-cookie
-            header containing 'Expires=Fri, 24 Feb 2017 00:58:28 GMT'."""
-            del replica["headers"]["SET-COOKIE"]
+    if set_cookie and is_failing_parsing(set_cookie):
+        del replica["headers"]["SET-COOKIE"]
     return replica
 
 

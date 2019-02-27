@@ -1,6 +1,6 @@
 import pytest
 import tempfile
-from pytest_vts.vts.machine import class_function_name
+from pytest_vts.logic.machine import class_function_name
 
 
 @pytest.mark.parametrize(

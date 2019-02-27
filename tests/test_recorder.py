@@ -10,6 +10,7 @@ import requests
 import six
 
 import pytest_vts
+import pytest_vts.logic._compat.cookie_parsing_library_errors as cookie_parsing_compat
 
 
 def make_req(request):
@@ -233,7 +234,10 @@ def test_recording_set_cookie_with_date_not_recorded(
     url = "{}/set-cookie-date".format(chpy_http_server)
     resp = requests.get(url)
     assert resp.status_code == 200
-    assert "set-cookie" not in resp.headers
+    if cookie_parsing_compat.COOKIE_PARSING_LIBRARY_LOADED == 'cookies':
+        assert "set-cookie" not in resp.headers
+    else:
+        assert "set-cookie" in resp.headers
 
 
 def test_recording_set_cookie_no_date_recorded(
