@@ -1,5 +1,9 @@
 This project uses [Semantic Versioning][] and follows [these][keepachangelog] changelog guidelines.
 
+# v0.4.7 - 2019-06-28
+#### Fixed:
+  - ensure six is a newer version
+
 # v0.4.6 - 2019-06-27
 #### Fixed:
 
@@ -12,7 +16,7 @@ This project uses [Semantic Versioning][] and follows [these][keepachangelog] ch
       - should fix using `requests.post(url, json=dict(...))`
 
 # v0.4.5 - 2018-06-18
-####Fixed:
+#### Fixed:
   - custom wrappers now work properly in playback mode
 
 # v0.4.4 - 2018-05-15

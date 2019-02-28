@@ -23,10 +23,32 @@ class RequestBodyDoesntMatchTrack(Exception):
     pass
 
 
-def ensure_text_silent(s, *args, **kwargs):
-    if s is None:
-        return s
-    return six.ensure_text(s, *args, **kwargs)
+def ensure_text_silent(ss, *args, **kwargs):
+    if ss is None:
+        return ss
+    if hasattr(six, "ensure_text"):
+        _ensure_text = six.ensure_text
+    else:
+        def _ensure_text(s, encoding='utf-8', errors='strict'):
+            """Coerce *s* to six.text_type.
+            For Python 2:
+              - `unicode` -> `unicode`
+              - `str` -> `unicode`
+            For Python 3:
+              - `str` -> `str`
+              - `bytes` -> decoded to `str`
+
+            "Stolen" from six >1.12.0 to avoid having a hard dependency on that,
+            but rather allow clients to use any version of six
+            """
+            if isinstance(s, six.binary_type):
+                return s.decode(encoding, errors)
+            elif isinstance(s, six.text_type):
+                return s
+            else:
+                raise TypeError("not expecting type '%s'" % type(s))
+    return _ensure_text(ss, *args, **kwargs)
+
 
 def function_name(pytest_req):
     return pytest_req.node.name
