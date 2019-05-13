@@ -92,7 +92,7 @@ def _make_urllib3(http_prep_req):
             bodys = json.dumps(body)
         except ValueError:
             body = bodys = resp.data.decode("utf-8")
-        return resp.status, dict(resp.headers.items()), bodys
+        return resp.status, dict(resp.headers.itermerged()), bodys
 
 
 class Recorder(object):
