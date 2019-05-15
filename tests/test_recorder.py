@@ -1,5 +1,7 @@
+import functools
 import json
 import random
+import logging
 import six.moves.urllib as urllib
 import zlib
 
@@ -12,6 +14,7 @@ import six
 import pytest_vts
 import pytest_vts.logic._compat.cookie_parsing_library_errors as cookie_parsing_compat
 
+from tests.server_fixtures.multiple_set_cookie import multiple_set_cookie_headers
 
 def make_req(request):
     sess = requests.Session()
@@ -270,3 +273,16 @@ def test_requests_post_using_json(chpy_http_server, vts_rec_on):
     assert body_0 == body_1
     # ultimatelly save the cassette file to rule out any other issue
     vts_rec_on._save_cassette()
+
+
+@pytest.mark.parametrize("handler", [multiple_set_cookie_headers])
+def test_multiple_set_cookie(http_custom_server, vts_rec_on):
+    """Enable detailed logging using pytest's cli options:
+           tox -- --log-cli-level DEBUG
+    """
+    url = "{}/multiple-set-cookie".format(http_custom_server)
+    resp = requests.get(url)
+    assert resp
+    assert resp.headers
+    assert resp.cookies
+    assert len(resp.cookies) == 2

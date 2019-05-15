@@ -13,15 +13,7 @@ import gevent.monkey
 import pytest
 import requests
 
-
-def pick_a_port():
-    ss = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    # reuse the socket right away, don't keep it in TIME_WAIT
-    ss.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-    ss.bind(("", 0))
-    port = ss.getsockname()[1]
-    ss.close()
-    return port
+import tests.server_fixtures.base_http as base_http
 
 
 class Root(object):
@@ -130,7 +122,7 @@ def chpy_http_server():
     I ended up using cherrypy since I struggle a bit to implement a simple TCP
     server for chunked-encoded responses and decided to use a library which
     might be more reliable in the future for cases which it supports."""
-    port = pick_a_port()
+    port = base_http.pick_a_port()
     server = multiprocessing.Process(
         target=run_cherrypy,
         args=(port,),
@@ -148,7 +140,7 @@ def chpy_http_server():
 
 @pytest.yield_fixture
 def chpy_custom_server(root_chpy):
-    port = pick_a_port()
+    port = base_http.pick_a_port()
     server = multiprocessing.Process(
         target=run_cherrypy,
         args=(port, root_chpy)
@@ -166,7 +158,7 @@ def chpy_custom_server(root_chpy):
 
 @pytest.yield_fixture
 def chpy_custom_server2():
-    port = pick_a_port()
+    port = base_http.pick_a_port()
     cmd = "python -m tests.server_fixtures.cherry"
     os.environ.setdefault("X-PORT", str(port))
     server = subprocess.Popen(
@@ -180,6 +172,24 @@ def chpy_custom_server2():
         server.terminate()
         raise
     url = "http://127.0.0.1:{}".format(port)
+    yield url
+    server.terminate()
+
+
+@pytest.fixture
+def http_custom_server(handler):
+    port = base_http.pick_a_port()
+    url = "http://127.0.0.1:{}".format(port)
+    server = multiprocessing.Process(
+        target=handler,
+        args=(port,)
+    )
+    server.start()
+    try:
+        _wait_for_server("127.0.0.1", port)
+    except Exception:
+        server.terminate()
+        raise
     yield url
     server.terminate()
 
