@@ -44,6 +44,12 @@ class Root(object):
         cherrypy.response.headers["Set-Cookie"] = "Path=/"
         return b"dateless set-cookie header"
 
+    # @cherrypy.expose
+    # def multiple_set_cookie(self):
+    #     cherrypy.response.headers["Set-Cookie"] = ",".join(["one=1; path=/one; HttpOnly; secure", "two=2; path=/two; HttpOnly; secure"])
+    #     print(cherrypy.response.headers)
+    #     return b"multiple set-cookie headers"
+
     @cherrypy.expose
     def foreground(self):
         return "foreground"
