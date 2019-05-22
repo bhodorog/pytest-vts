@@ -4,6 +4,7 @@ import json
 import re
 import logging
 import os.path
+import uuid
 
 import py.path
 import requests
@@ -63,36 +64,9 @@ def class_function_name(pytest_req):
 
 def no_op(func):
     @functools.wraps(func)
-    def _inner(prep_req, *args, **kwargs):
-        return func(prep_req, *args, **kwargs)
+    def _inner(*args, **kwargs):
+        return func(*args, **kwargs)
     return _inner
-
-
-def _make_urllib3(http_prep_req):
-    try:
-        # carefull with this since it's silencing any Insecure SSL warnings
-        requests.packages.urllib3.disable_warnings()
-        pm = requests.packages.urllib3.PoolManager()
-        resp = pm.urlopen(
-            method=http_prep_req.method,
-            url=http_prep_req.url,
-            body=http_prep_req.body,
-            headers=http_prep_req.headers,
-            redirect=False,
-            assert_same_host=False,
-            preload_content=False,
-            decode_content=True,
-            retries=3,
-        )
-    except:
-        raise
-    else:
-        try:
-            body = json.loads(resp.data.decode("utf-8"))
-            bodys = json.dumps(body)
-        except ValueError:
-            body = bodys = resp.data.decode("utf-8")
-        return resp.status, dict(resp.headers.items()), bodys
 
 
 class Recorder(object):
@@ -119,6 +93,7 @@ class Recorder(object):
         self.strict_body = False
         self.responses = responses.RequestsMock(
             assert_all_requests_are_fired=False)
+        self._raw_responses = {}
 
     def _init_cassette_name(self, cassette_name):
         if cassette_name and callable(cassette_name):
@@ -137,6 +112,58 @@ class Recorder(object):
             return self._pytst_req.fspath.dirpath().join("cassettes")
         return py.path.local(basedir, expanduser=True)
 
+    def _make_urllib3(self, http_prep_req):
+        try:
+            # carefull with this since it's silencing any Insecure SSL warnings
+            requests.packages.urllib3.disable_warnings()
+            pm = requests.packages.urllib3.PoolManager()
+            resp = pm.urlopen(
+                method=http_prep_req.method,
+                url=http_prep_req.url,
+                body=http_prep_req.body,
+                headers=http_prep_req.headers,
+                redirect=False,
+                assert_same_host=False,
+                preload_content=False,
+                decode_content=True,
+                retries=3,
+            )
+        except:
+            raise
+        else:
+            try:
+                body = json.loads(resp.data.decode("utf-8"))
+                bodys = json.dumps(body)
+            except ValueError:
+                body = bodys = resp.data.decode("utf-8")
+            header_dict = dict(resp.headers.itermerged())
+
+            # Stash the raw response, identified by a uuid noted as a header
+            # This is retrieved later by the response callback
+            # _add_original_response.
+            #
+            # Requests later uses response.raw._original_response
+            # (an httplib.HTTPResponse) for cookie handling, but this is not
+            # preserved because the request callback interface in responses
+            # only returns a status, headers and body, not the whole response
+
+            response_id = str(uuid.uuid4())
+            header_dict['X-VTS-Response-ID'] = response_id
+            self._raw_responses[response_id] = resp
+            return resp.status, header_dict, bodys
+
+    def _add_original_response(self, response):
+        if not hasattr(response, 'headers'):
+            return response
+        response_id = response.headers.get('X-VTS-Response-ID')
+        if not response_id:
+            return response
+        raw_response = self._raw_responses.get(response_id)
+        if raw_response:
+            response.raw._original_response = raw_response._original_response
+            del response.headers['X-VTS-Response-ID']
+        return response
+
     def setup(self, basedir=None, cassette_name=function_name, **kwargs):
         if basedir:
             self._cass_dir = self._init_destination(basedir)
@@ -152,7 +179,8 @@ class Recorder(object):
                 kwargs.get("request_wrapper", no_op),
                 **kwargs.get("play_kwargs", {}))
 
-    def setup_recording(self, request_wrapper=no_op, **kwargs):
+    def setup_recording(
+            self, request_wrapper=no_op, response_wrapper=no_op, **kwargs):
         _logger.info("setup recording ...")
         self.is_recording = True
         self.is_playing = False
@@ -161,12 +189,14 @@ class Recorder(object):
         methods = (responses.GET, responses.POST, responses.PUT,
                    responses.PATCH, responses.DELETE, responses.HEAD,
                    responses.OPTIONS)
-        callback = self.record(request_wrapper(_make_urllib3))
+        callback = self.record(request_wrapper(self._make_urllib3))
         for http_method in methods:
             self.responses.add_callback(
                 http_method, all_requests_re,
                 match_querystring=False,
                 callback=callback)
+        self.responses.response_callback = response_wrapper(
+            self._add_original_response)
 
     def setup_playback(self, request_wrapper=no_op, **kwargs):
         _logger.info("setup playback ...")
@@ -332,7 +362,7 @@ class Recorder(object):
                     body = bodys = resp.data.decode("utf-8")
                 track["response"] = {
                     "status_code": resp.status,
-                    "headers": dict(resp.headers.items()),
+                    "headers": dict(resp.headers.itermerged()),
                     "body": ensure_text_silent(body),
                 }
                 self.cassette.append(track)
