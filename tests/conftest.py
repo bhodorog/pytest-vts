@@ -4,7 +4,6 @@ import os
 import shlex
 import subprocess
 import socket
-import sys
 import time
 
 import cherrypy
@@ -14,60 +13,20 @@ import pytest
 import requests
 
 import tests.server_fixtures.base_http as base_http
-
-
-class Root(object):
-    @cherrypy.expose
-    def index(self):
-        return b"pong"
-
-    @cherrypy.expose
-    def text(self):
-        return b"Hello world"
-
-    @cherrypy.expose
-    def no_content(self):
-        cherrypy.response.status = 204
-        return b""
-
-    @cherrypy.expose
-    @cherrypy.tools.json_out()
-    def json(self):
-        return {"message": "Hello world"}
-
-    @cherrypy.expose
-    def chunked(self):
-        cherrypy.response.headers["Content-Type"] = "application/json"
-
-        def content():
-            yield b'{"message": '
-            yield b'"Hello'
-            yield b' '
-            yield b'world"'
-            yield b'}'
-
-        return content()
-    chunked._cp_config = {"response.stream": True}
-
-    @cherrypy.expose
-    def set_cookie_date(self):
-        cherrypy.response.headers["Set-Cookie"] = "Path=/; Expires=Fri, 24 Feb 2017 00:58:28 GMT; HttpOnly"
-        return b"date based set-cookie header"
-
-    @cherrypy.expose
-    def set_cookie_no_date(self):
-        cherrypy.response.headers["Set-Cookie"] = "Path=/"
-        return b"dateless set-cookie header"
+from tests.server_fixtures.routes import Root
 
 
 def run_cherrypy(port, root_kls=Root):
-    import logging
-    logging.getLogger("cherrypy").setLevel(logging.DEBUG)
+    # import logging
+    # logging.getLogger("cherrypy").setLevel(logging.DEBUG)
     cherrypy.config.update({
         "server.socket_port": port,
         "engine.autoreload.on": False,
+        "tools.sessions.on": True,  # enable sessions to be able to test HttpOnly or secure cookies
+        "tools.sessions.secure": True,
+        "tools.sessions.httponly": True,
         # "engine.timeout_monitor.on": False,  # removed by cherrypy > 12.0.0
-        # "log.screen": False
+        "log.screen": False  # enable this when debugging background cherrypy servers
     })
     cherrypy.quickstart(root_kls(), "/")
 
@@ -99,7 +58,7 @@ def _wait_for_server(host, port, max_retries=4):
         retries -= 1
         try:
             sock = socket.create_connection((host, port))
-            to_send = "GET / HTTP/1.1\r\nHost: {}:{}\r\n\r\n".format(host, port)
+            to_send = "GET /ping HTTP/1.1\r\nHost: {}:{}\r\n\r\n".format(host, port)
             sock.sendall(to_send.encode("utf-8"))
             data = sock.recv(1024)
         except Exception as exc:
@@ -114,7 +73,7 @@ def _wait_for_server(host, port, max_retries=4):
             host, port, max_retries, (max_retries-retries)*sleep))
 
 
-@pytest.yield_fixture
+@pytest.fixture
 def chpy_http_server():
     """Background server simulating different transfer-encoded http
     responses
@@ -138,7 +97,7 @@ def chpy_http_server():
     server.terminate()
 
 
-@pytest.yield_fixture
+@pytest.fixture
 def chpy_custom_server(root_chpy):
     port = base_http.pick_a_port()
     server = multiprocessing.Process(

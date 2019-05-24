@@ -14,7 +14,7 @@ import six
 import pytest_vts
 import pytest_vts.logic._compat.cookie_parsing_library_errors as cookie_parsing_compat
 
-from tests.server_fixtures.multiple_set_cookie import multiple_set_cookie_headers
+from tests.server_fixtures.multiple_set_cookie import multiple_set_cookie_with_redirects
 
 def make_req(request):
     sess = requests.Session()
@@ -44,6 +44,10 @@ def shuffle_qs(qs):
 class QueryStrings(object):
     @cherrypy.expose
     def index(self):
+        return "pong"
+
+    @cherrypy.expose
+    def ping(self):
         return "pong"
 
     @cherrypy.expose
@@ -275,12 +279,13 @@ def test_requests_post_using_json(chpy_http_server, vts_rec_on):
     vts_rec_on._save_cassette()
 
 
-@pytest.mark.parametrize("handler", [multiple_set_cookie_headers])
-def test_multiple_set_cookie(http_custom_server, vts_rec_on):
+# @pytest.mark.parametrize("handler", [multiple_set_cookie_with_redirects])
+# def test_multiple_set_cookie(http_custom_server, vts_rec_on):
+def test_multiple_set_cookie(chpy_http_server, vts_rec_on):
     """Enable detailed logging using pytest's cli options:
            tox -- --log-cli-level DEBUG
     """
-    url = "{}/multiple-set-cookie".format(http_custom_server)
+    url = "{}/set-cookie-redirect".format(chpy_http_server)
     resp = requests.get(url)
     assert resp
     assert resp.headers
