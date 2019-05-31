@@ -8,7 +8,7 @@ import uuid
 
 import py.path
 import requests
-import responses
+import pytest_vts.vendored.responses as responses
 import six
 
 from pytest_vts.logic._compat.cookie_parsing_library_errors import is_failing_parsing
@@ -254,7 +254,7 @@ class Recorder(object):
                 err_msg = ("Requests body doesn't match recorded track's "
                            "body!!:\n{}\n!=\n{}").format(
                                crt_http_req.body, recorded_req.get("body"))
-                _logger.warn(err_msg)
+                _logger.warning(err_msg)
             return (resp["status_code"],
                     resp["headers"],
                     json.dumps(resp["body"]))

@@ -241,10 +241,7 @@ def test_recording_set_cookie_with_date_not_recorded(
     url = "{}/set-cookie-date".format(chpy_http_server)
     resp = requests.get(url)
     assert resp.status_code == 200
-    if cookie_parsing_compat.COOKIE_PARSING_LIBRARY_LOADED == 'cookies':
-        assert "set-cookie" not in resp.headers
-    else:
-        assert "set-cookie" in resp.headers
+    assert "set-cookie" in resp.headers
 
 
 def test_recording_set_cookie_no_date_recorded(
@@ -290,4 +287,4 @@ def test_multiple_set_cookie(chpy_http_server, vts_rec_on):
     assert resp
     assert resp.headers
     assert resp.cookies
-    assert len(resp.cookies) == 2
+    assert len(resp.cookies) == 1
