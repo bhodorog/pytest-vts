@@ -28,4 +28,8 @@ setup(
     license="MIT",
     keywords=keywords,
     classifiers=["Framework :: Pytest"],
+    project_urls={
+        'Bug Reports': 'https://github.com/bhodorog/pytest-vts/issues',
+        'Source': 'https://github.com/bhodorog/pytest-vts',
+    },
 )

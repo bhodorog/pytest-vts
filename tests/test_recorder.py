@@ -1,5 +1,7 @@
+import functools
 import json
 import random
+import logging
 import six.moves.urllib as urllib
 import zlib
 
@@ -12,6 +14,7 @@ import six
 import pytest_vts
 import pytest_vts.logic._compat.cookie_parsing_library_errors as cookie_parsing_compat
 
+from tests.server_fixtures.multiple_set_cookie import multiple_set_cookie_with_redirects
 
 def make_req(request):
     sess = requests.Session()
@@ -41,6 +44,10 @@ def shuffle_qs(qs):
 class QueryStrings(object):
     @cherrypy.expose
     def index(self):
+        return "pong"
+
+    @cherrypy.expose
+    def ping(self):
         return "pong"
 
     @cherrypy.expose
@@ -234,10 +241,7 @@ def test_recording_set_cookie_with_date_not_recorded(
     url = "{}/set-cookie-date".format(chpy_http_server)
     resp = requests.get(url)
     assert resp.status_code == 200
-    if cookie_parsing_compat.COOKIE_PARSING_LIBRARY_LOADED == 'cookies':
-        assert "set-cookie" not in resp.headers
-    else:
-        assert "set-cookie" in resp.headers
+    assert "set-cookie" in resp.headers
 
 
 def test_recording_set_cookie_no_date_recorded(
@@ -270,3 +274,17 @@ def test_requests_post_using_json(chpy_http_server, vts_rec_on):
     assert body_0 == body_1
     # ultimatelly save the cassette file to rule out any other issue
     vts_rec_on._save_cassette()
+
+
+# @pytest.mark.parametrize("handler", [multiple_set_cookie_with_redirects])
+# def test_multiple_set_cookie(http_custom_server, vts_rec_on):
+def test_multiple_set_cookie(chpy_http_server, vts_rec_on):
+    """Enable detailed logging using pytest's cli options:
+           tox -- --log-cli-level DEBUG
+    """
+    url = "{}/set-cookie-redirect".format(chpy_http_server)
+    resp = requests.get(url)
+    assert resp
+    assert resp.headers
+    assert resp.cookies
+    assert len(resp.cookies) == 1

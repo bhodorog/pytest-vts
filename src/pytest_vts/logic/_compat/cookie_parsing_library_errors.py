@@ -50,7 +50,7 @@ if not COOKIE_PARSING_LIBRARY_LOADED:
         COOKIE_PARSING_LIBRARY_LOADED = 'cookies'
         def is_failing_parsing(set_cookie_header):
             try:
-                cookies.Cookies.from_request(set_cookie_header)
+                cookies.Cookies.from_response(set_cookie_header)
             except Exception:
                 """it seems cookies library has difficulties in parsing a set-cookie
                 header containing 'Expires=Fri, 24 Feb 2017 00:58:28 GMT'."""
