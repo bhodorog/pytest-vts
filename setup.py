@@ -13,7 +13,13 @@ setup(
     version=__version__,  # noqa
     packages=find_packages("src"),
     package_dir={"": "src"},
-    install_requires=["pytest >=2.3", "responses", "cookies", "six"],
+    install_requires=[
+        "pytest >=2.3",
+        "responses",
+        "cookies",
+        "six",
+        "urllib3 !=1.25.0,!=1.25.1,!=1.25.2"
+    ],
     entry_points={
         "pytest11": [
             "pytest_vts = pytest_vts"
